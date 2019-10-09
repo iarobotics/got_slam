@@ -40,13 +40,9 @@ enum Pos_Parse_State_Type Pos_Parse_State = Idle;
 char Pos_Data[50];
 int Pos_Cnt=0;
 
-enum Lidar_Parse_State_Type {StartByteRecL = 1, IdleL = 0};
-enum Lidar_Parse_State_Type Lidar_Parse_State = IdleL;
-char Lidar_Data[50];
-int Lidar_Cnt=0;
 
 double xPos,yPos,zPos; //Position Data from GoT
-float lidar_angle, lidar_distance;
+float angle, distance;
 double ref_Pos[2][2]={{6000.0,0.0},{2000.0,0.0}};
 double HeadingX,HeadingY;
 int done=0;
@@ -119,7 +115,7 @@ int my_str_lgth(char *instring)
   return(cnt);
 }
 
-void my_sscanf(char *inbuffer)
+void my_sscanf_old(char *inbuffer)
 {
 
   char *pch;
@@ -146,46 +142,41 @@ void my_sscanf(char *inbuffer)
               Compute_Heading_Pt();
 }
 
-void Parse_Lidar_Data(char inByte)
-{
-  switch(Lidar_Parse_State) {
-     case IdleL:
-         if(inByte==':')
-         {
-            Lidar_Cnt=0;
-            Lidar_Data[Lidar_Cnt]=inByte;
-            Lidar_Parse_State=StartByteRecL;
-            Lidar_Cnt++;
-         }
-         break;
-     case StartByteRecL:
-            Lidar_Data[Lidar_Cnt]=inByte;
-            if(inByte==';')
-            {
-              my_sscanf_lidar(Lidar_Data);
-              Lidar_Parse_State=IdleL;
-            }
-            Lidar_Cnt++;
-            Lidar_Data[Lidar_Cnt]=0; //zero-terminated
-  }
-}
-
-void my_sscanf_lidar(char *inbuffer)
+void my_sscanf(char *inbuffer)
 {
 
   char *pch;
   int str_ptr=0;
   pch = strtok (&inbuffer[1],",");
   str_ptr+=my_str_lgth(pch)+1;
-  lidar_angle=atof(pch);
-  pch = strtok (&inbuffer[1+str_ptr],";");
+  xPos=atof(pch);
+  pch = strtok (&inbuffer[1+str_ptr],",");
   str_ptr+=my_str_lgth(pch)+1;
-  lidar_distance=atof(pch);
-              Serial.print("Angle: ");
-              Serial.print(lidar_angle);
-              Serial.print("\t");
-              Serial.print("Distance: ");
-              Serial.println(lidar_distance);
+  yPos=atof(pch);
+  pch = strtok (&inbuffer[1+str_ptr],",");
+  zPos=atof(pch);
+
+  pch = strtok (&inbuffer[1+str_ptr],",");
+  angle=atof(pch);
+  pch = strtok (&inbuffer[1+str_ptr],";");
+  angle=atof(pch);
+
+              Serial.print("xPos: ");
+              Serial.println(xPos);
+              Serial.print("yPos: ");
+              Serial.println(yPos);
+              Serial.print("zPos: ");
+              Serial.println(zPos);
+              Serial.print("StartPos: ");
+              Serial.print(ref_Pos[0][0]);
+              Serial.print(',');
+              Serial.print(ref_Pos[0][1]);
+
+              Serial.print(" angle: ");
+              Serial.println(angle);
+              Serial.print(" distance: ");
+              Serial.println(angle);
+              Compute_Heading_Pt();
 }
 
 void Compute_Heading_Pt()
@@ -239,13 +230,6 @@ void loop() {
       char inByte = Serial1.read();
       Parse_Pos_Data(inByte);
    }
-
-   if (Serial2.available()) {
-      char inByte2 = Serial2.read();
-      Parse_Lidar_Data(inByte2);
-   }
-   //Serial.println(Serial2.available() ? "GOT SERIAL_2" : "NO");
-   //Compute_Heading_Pt();
 
 
 
