@@ -21,20 +21,21 @@ const int MAGYMIN = -34;
 #define LED_PIN 13
 bool blinkState = false;
 
-const int analogOutPin1 = 6; // Analog output pin that the LED is attached to
-int InBPin1 = 10;
-int InAPin1 = 9;
+const int analogOutPin1 = 10; // Analog output pin that the LED is attached to
+int InBPin1 = 11;
+int InAPin1 = 12;
 boolean InA1 = LOW;
 boolean InB1;
 
-const int analogOutPin2 = 4; // Analog output pin that the LED is attached to
-int InBPin2 = 3;
-int InAPin2 = 5;
+const int analogOutPin2 = 30; // Analog output pin that the LED is attached to
+int InBPin2 = 26;
+int InAPin2 = 28;
 boolean InA2 = HIGH;
 boolean InB2;
 
 void setup() {
 
+   delay(5000);
    pinMode(InAPin1, OUTPUT);
    pinMode(InBPin1, OUTPUT);
    pinMode(InAPin2, OUTPUT);
@@ -61,6 +62,7 @@ void setup() {
    pinMode(LED_PIN, OUTPUT);
    InB1 = not InA1;
    InB2 = not InA2;
+   delay(5000);
 }
 
 void loop() {
@@ -138,12 +140,12 @@ Serial.print(',');
 Serial.println(outB);
    
 
-  digitalWrite(InAPin1, InA1);
-  digitalWrite(InBPin1, InB1);
-  analogWrite(analogOutPin1, outA);
+  //digitalWrite(InAPin1, InA1);
+  //digitalWrite(InBPin1, InB1);
+  //analogWrite(analogOutPin1, outA);
 
-  digitalWrite(InAPin2, InA2);
-  digitalWrite(InBPin2, InB2);
-  analogWrite(analogOutPin2, outB);
+  //digitalWrite(InAPin2, InA2);
+  //digitalWrite(InBPin2, InB2);
+  //analogWrite(analogOutPin2, outB);
   delay (50);
 }

@@ -38,18 +38,6 @@ data_type* data_ptr;
 
 enum Byte_Type {Escape = 0x10, StartByte = 0x02, StopByte = 0x03};
 
-void setup() {
-  // initialize both serial ports:
-  Serial.begin(115200);
-  Serial1.begin(115200);
-  while(1==0)
-  {
-    for(int i=0;i<21;i++)
-     Serial.write(test_bytes[i]);
-     delay(100);
-  }
-}
-
 bool compute_checksum()
 {
   int i;
@@ -152,26 +140,26 @@ void Estimate_position()
       z_est=z_est_new;
     }
 
-    Serial.print(':');
-    Serial.print(x_est);
-    Serial.print(',');
-    Serial.print(y_est);
-    Serial.print(',');
-    Serial.print(z_est);
-    Serial.println(";");
+//    Serial.print(':');
+//    Serial.print(x_est);
+//    Serial.print(',');
+//    Serial.print(y_est);
+//    Serial.print(',');
+//    Serial.print(z_est);
+//    Serial.println(";");
 
-    Serial1.print(':');
-    Serial1.print(x_est);
-    Serial1.print(',');
-    Serial1.print(y_est);
-    Serial1.print(',');
-    Serial1.print(z_est);
-    Serial1.println(";");
+//    Serial1.print(':');
+//    Serial1.print(x_est);
+//    Serial1.print(',');
+//    Serial1.print(y_est);
+//    Serial1.print(',');
+//    Serial1.print(z_est);
+//    Serial1.println(";");
   }    
 }
 
-
-void loop() {
+void Get_Position()
+{
   char inByte;
   
   if (Serial1.available()) {
@@ -213,4 +201,3 @@ void loop() {
    }
   }
 }
-
