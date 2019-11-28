@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Data>
+  <Scenarios>
+    <Scenario Name="SatelliteGroup" Sensivity="Normal" DisplayColor="#FF8A2BE2" Type="Type3D">
+      <MergeTranslation X="0" Y="0" Z="0" />
+      <MergeRotationAxis X="0" Y="0" Z="0" />
+      <MergeRotationAngle Degrees="0" />
+      <CalibrationTriangle From00toX0="750" FromX0toXY="750" FromXYto00="750" />
+      <Satellite Id="42929" DistanceTo00="4349" DistanceToX0="4124" DistanceToXY="4341" PositionX="1645" PositionY="-462" PositionZ="4000" />
+      <Satellite Id="42498" DistanceTo00="6010" DistanceToX0="5856" DistanceToXY="5481" PositionX="1591" PositionY="4193" PositionZ="3999" />
+      <Satellite Id="42867" DistanceTo00="8284" DistanceToX0="7739" DistanceToXY="8033" PositionX="6195" PositionY="0" PositionZ="5499" />
+      <Satellite Id="42928" DistanceTo00="12291" DistanceToX0="11679" DistanceToXY="11771" PositionX="10157" PositionY="4204" PositionZ="5499" />
+      <Satellite Id="42497" DistanceTo00="12150" DistanceToX0="11504" DistanceToXY="11974" PositionX="10568" PositionY="-2389" PositionZ="5499" />
+    </Scenario>
+  </Scenarios>
+  <Blocks />
+  <Routes />
+  <BlackBoxData />
+  <UAVs />
+  <SatelliteSystem ScenarioType="Type3D" ReceiverSensitivity="Normal" UltraSonicLevel="Medium" IntervalMS="80" SatelliteLoopLength="5">
+    <SatelliteSystemData>
+      <IntervalMS Interval="80" />
+      <PollingRate Frequency="500" />
+      <OriginLatitude Latitude="57.016635" />
+      <OriginLongitude Longitude="9.976738" />
+      <Azimuth Azimuth="-90" />
+      <ServerIP IP="" />
+      <DebugLevel Debug="1" />
+      <CPRSensitivity Sensivity="1" />
+    </SatelliteSystemData>
+    <SatelliteGroups>
+      <SatelliteGroup Name="SatelliteGroup" MasterSerialNumber="0" TimeOffsetMS="10" FloorLevel="0">
+        <Satellites>
+          <SatelliteItem GotAddressId="42929">
+            <Position X="1800" Y="-180" Z="4300" />
+          </SatelliteItem>
+          <SatelliteItem GotAddressId="42498">
+            <Position X="1887" Y="4067" Z="4300" />
+          </SatelliteItem>
+          <SatelliteItem GotAddressId="42867">
+            <Position X="6015" Y="525" Z="5600" />
+          </SatelliteItem>
+          <SatelliteItem GotAddressId="42928">
+            <Position X="10157" Y="4211" Z="5600" />
+          </SatelliteItem>
+          <SatelliteItem GotAddressId="42497">
+            <Position X="10686" Y="-2527" Z="5600" />
+          </SatelliteItem>
+        </Satellites>
+        <SatellitesLoop>
+          <SatelliteLoop GotAddressId="42929" UltraSonicLevel="Medium" RadioLevel="Lowest">
+            <Position X="1645" Y="-463" Z="4000" />
+          </SatelliteLoop>
+          <SatelliteLoop GotAddressId="42498" UltraSonicLevel="Medium" RadioLevel="Lowest">
+            <Position X="1591" Y="4194" Z="4000" />
+          </SatelliteLoop>
+          <SatelliteLoop GotAddressId="42867" UltraSonicLevel="Medium" RadioLevel="Lowest">
+            <Position X="6195" Y="0" Z="5500" />
+          </SatelliteLoop>
+          <SatelliteLoop GotAddressId="42928" UltraSonicLevel="Medium" RadioLevel="Lowest">
+            <Position X="10157" Y="4204" Z="5500" />
+          </SatelliteLoop>
+          <SatelliteLoop GotAddressId="42497" UltraSonicLevel="Medium" RadioLevel="Lowest">
+            <Position X="10568" Y="-2390" Z="5500" />
+          </SatelliteLoop>
+        </SatellitesLoop>
+      </SatelliteGroup>
+    </SatelliteGroups>
+  </SatelliteSystem>
+</Data>
