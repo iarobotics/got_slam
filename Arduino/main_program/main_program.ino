@@ -1,11 +1,71 @@
 #include "Wire.h"
 #include "I2Cdev.h"
-#include "MPU6050.h"
+//#include "MPU6050.h"
 #include "HMC5883L.h"
 
 #include "got_serial.h"
+#include "MPU6050_6Axis_MotionApps20.h"
 
-MPU6050 accelgyro;
+////ROS variables
+#include <ros.h>
+//#include <std_msgs/String.h>
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Twist.h>
+#include <std_msgs/Int8.h>
+
+//#define OUTPUT_QUATERNION
+//#define PRINT_POS
+//#define PRINT_REF
+//#define ROS_MOVE_CMD
+#define ROS_TELEOP
+
+ros::NodeHandle nh;
+
+//ros::Publisher chatter("chatter", &str_msg);
+geometry_msgs::Pose pose_msg;
+ros::Publisher robot_pose("robot_pose", &pose_msg);
+
+#ifdef ROS_MOVE_CMD
+  boolean move_robot = false;
+  
+  void messageCb(const std_msgs::Int8& msg)
+  {
+    if(msg.data == 1)
+      move_robot = true;   //blink the led
+  else
+    move_robot=false;   //turn off the led
+  }
+   
+  //ros::Subscriber sub("LED", &messageCb);
+  ros::Subscriber<std_msgs::Int8> sub("LED", &messageCb);
+#endif
+////////////////
+
+#ifdef ROS_TELEOP
+  boolean move_robot = false;
+  
+  void teleopCb(const geometry_msgs::Twist& msg)
+  {
+    Serial.print(msg.linear.x);
+    Serial.print(', ');
+    Serial.print(msg.linear.y);
+    Serial.print(', ');
+    Serial.print(msg.linear.z);
+    Serial.print('; ');
+
+    Serial.print(msg.angular.x);
+    Serial.print(', ');
+    Serial.print(msg.angular.y);
+    Serial.print(', ');
+    Serial.println(msg.angular.z);
+    
+  }
+   
+  ros::Subscriber<geometry_msgs::Twist> teleop_sub("teleop", &teleopCb);
+
+#endif
+
+MPU6050 mpu;
 HMC5883L mag;
 
 int16_t ax, ay, az;
@@ -23,15 +83,27 @@ const int MAGYMIN = -92;
 #define LED_PIN 13
 bool blinkState = false;
 
+#define BATT_PIN 23
+int battery_level = 0;
+
 const int analogOutPin1 = 10; // Analog output pin that the LED is attached to
-int InBPin1 = 11;
-int InAPin1 = 12;
+//int InBPin1 = 11;
+//int InAPin1 = 12;
+
+//Reversed
+int InBPin1 = 12;
+int InAPin1 = 11;
+
 boolean InA1 = LOW;
 boolean InB1;
 
 const int analogOutPin2 = 30; // Analog output pin that the LED is attached to
-int InBPin2 = 26;
-int InAPin2 = 28;
+//int InBPin2 = 26;
+//int InAPin2 = 28;
+
+//Reversed
+int InBPin2 = 28;
+int InAPin2 = 26;
 boolean InA2 = HIGH;
 boolean InB2;
 
@@ -46,41 +118,99 @@ int Pos_Cnt=0;
 
 double xPos,yPos,zPos; //Position Data from GoT
 float angle, distance;
-double ref_Pos[2][2]={{6000.0,0.0},{2000.0,0.0}};
+//double ref_Pos[2][2]={{6000.0,0.0},{2000.0,0.0}};
+double ref_Pos[2][2]={{9000.0,0.0},{6000.0,0.0}};
 double HeadingX,HeadingY;
 int done=0;
 
+// MPU control/status vars
+bool dmpReady = false;  // set true if DMP init was successful
+uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
+uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
+uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
+uint16_t fifoCount;     // count of all bytes currently in FIFO
+uint8_t fifoBuffer[64]; // FIFO storage buffer
+
+// orientation/motion vars
+Quaternion q;           // [w, x, y, z]         quaternion container
+
 void setup() {
   delay(3000);
+  ///ROS
+    nh.initNode();
+    nh.advertise(robot_pose);
+
+    #ifdef ROS_MOVE_CMD
+      nh.subscribe(sub);
+    #endif
+
+    #ifdef ROS_TELEOP
+      nh.subscribe(teleop_sub);
+    #endif
+  //////
    pinMode(InAPin1, OUTPUT);
    pinMode(InBPin1, OUTPUT);
    pinMode(InAPin2, OUTPUT);
    pinMode(InBPin2, OUTPUT);
 
    Wire.begin();
-   accelgyro.setI2CMasterModeEnabled(false);
-   accelgyro.setI2CBypassEnabled(true) ;
-   accelgyro.setSleepEnabled(false);
+   Wire.setClock(400000); //TODO: Comment out if having compilation difficulties
+   mpu.setI2CMasterModeEnabled(false);
+   mpu.setI2CBypassEnabled(true) ;
+   mpu.setSleepEnabled(false);
 
    Serial.begin(115200);
    Serial1.begin(115200);
 
    // initialize device
    Serial.println("Initializing I2C devices...");
-   accelgyro.initialize();
+   mpu.initialize();
    mag.initialize();
    Serial.println(mag.testConnection() ? "HMC5883L connection successful" : "HMC5883L connection failed");
 
    // verify connection
    Serial.println("Testing device connections...");
-   Serial.println(accelgyro.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+   Serial.println(mpu.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+
+ #ifdef OUTPUT_QUATERNION
+   Serial.println(F("Initializing DMP..."));
+   devStatus = mpu.dmpInitialize();
+
+    // make sure it worked (returns 0 if so)
+    if (devStatus == 0) {
+        // Calibration Time: generate offsets and calibrate our MPU6050
+        mpu.CalibrateAccel(6);
+        mpu.CalibrateGyro(6);
+        mpu.PrintActiveOffsets();
+        // turn on the DMP, now that it's ready
+        Serial.println(F("Enabling DMP..."));
+        mpu.setDMPEnabled(true);
+
+        mpuIntStatus = mpu.getIntStatus();
+
+        // set our DMP Ready flag so the main loop() function knows it's okay to use it
+        Serial.println(F("DMP ready! Waiting for first interrupt..."));
+        dmpReady = true;
+
+        // get expected DMP packet size for later comparison
+        packetSize = mpu.dmpGetFIFOPacketSize();
+    } else {
+        // ERROR!
+        // 1 = initial memory load failed
+        // 2 = DMP configuration updates failed
+        // (if it's going to break, usually the code will be 1)
+        Serial.print(F("DMP Initialization failed (code "));
+        Serial.print(devStatus);
+        Serial.println(F(")"));
+    }
+ #endif
 
    // configure Arduino LED for
    //pinMode(LED_PIN, OUTPUT);
    InB1 = not InA1;
    InB2 = not InA2;
 
-  //Neede for GoT data
+  //Needed for GoT data
   while(1==0)
   {
     for(int i=0;i<21;i++)
@@ -116,15 +246,6 @@ void Compute_Heading_Pt()
 //  Serial.println(a);
   HeadingX=a*ref_Pos[1][0]+(1-a)*ref_Pos[0][0];
   HeadingY=a*ref_Pos[1][1]+(1-a)*ref_Pos[0][1];
-//  Serial.print("HX: ");
-//  Serial.print(HeadingX);
-//  Serial.print("\t HY: ");
-//  Serial.println(HeadingY);
-
-//  Serial.print("Mag:");
-//  Serial.print(mx_cal);
-//  Serial.print(',');
-//  Serial.println(my_cal);
 
 //  Serial.print("Out:");
 //  Serial.print(wA);
@@ -134,38 +255,132 @@ void Compute_Heading_Pt()
 //  Serial.print(wB);
 //  Serial.print(',');
 //  Serial.println(outB);
-Serial.print("xPos: ");
-Serial.print(xPos);
-Serial.print("\t yPos: ");
-Serial.print(yPos);
-Serial.print("\t zPos: ");
-Serial.println(zPos);
 
-Serial.print("\t ref_Pos[0][0]: ");
-Serial.print(ref_Pos[0][0]);
-Serial.print("\t ref_Pos[0][1]: ");
-Serial.print(ref_Pos[0][1]);
-Serial.print("\t ref_Pos[1][0]: ");
-Serial.print(ref_Pos[1][0]);
-Serial.print("\t ref_Pos[1][1]: ");
-Serial.println(ref_Pos[1][1]);
+#ifdef PRINT_POS
+   Serial.print("xPos: ");
+   Serial.print(xPos);
+   Serial.print("\t yPos: ");
+   Serial.print(yPos);
+   Serial.print("\t zPos: ");
+   Serial.println(zPos);
 
-Serial.print("\t mx_cal: ");
-Serial.print(mx_cal);
-Serial.print("\t my_cal: ");
-Serial.println(my_cal);
+   Serial.print("\t ref_Pos[0][0]: ");
+   Serial.print(ref_Pos[0][0]);
+   Serial.print("\t ref_Pos[0][1]: ");
+   Serial.print(ref_Pos[0][1]);
+   Serial.print("\t ref_Pos[1][0]: ");
+   Serial.print(ref_Pos[1][0]);
+   Serial.print("\t ref_Pos[1][1]: ");
+   Serial.println(ref_Pos[1][1]);
+
+   Serial.print("\t mx_cal: ");
+   Serial.print(mx_cal);
+   Serial.print("\t my_cal: ");
+   Serial.println(my_cal);
+#endif
+
+//  str_msg.data = xPos;
+//  chatter.publish( &str_msg );
+// pose_msg.position = xPos, yPos, zPos;
+ pose_msg.position.x = xPos;
+ pose_msg.position.y = yPos;
+ pose_msg.position.z = zPos;
+
+ pose_msg.orientation.x = q.x;
+ pose_msg.orientation.y = q.y;
+ pose_msg.orientation.z = q.z;
+ pose_msg.orientation.w = q.w;
+ robot_pose.publish( &pose_msg );
 
 }
 
+void print_battery()
+{
+  int maximum = analogRead(BATT_PIN);
+  delay(1);
+  int minimum = analogRead(BATT_PIN);
+  delay(1);
+  for(int i=0;i<2000;i++)
+  {
+    int batt_lvl;
+    batt_lvl = analogRead(BATT_PIN);
+    delay(1);
+    if (batt_lvl > maximum)
+    {
+      maximum = batt_lvl;
+    }
+    else if (batt_lvl < minimum)
+    {
+      minimum = batt_lvl;
+    }
+  }
+  Serial.print(minimum);
+  Serial.print('\t');
+  Serial.println(maximum);
+}
+
+int get_battery()
+{
+    int batt_lvl;
+    batt_lvl = analogRead(BATT_PIN);
+    return batt_lvl;
+}
+
 void loop() {
+////////////////////////
+  #ifdef OUTPUT_QUATERNION
+    // if programming failed, don't try to do anything
+    if (!dmpReady) return;
+
+    // reset interrupt flag and get INT_STATUS byte
+    mpuIntStatus = mpu.getIntStatus();
+
+    // get current FIFO count
+    fifoCount = mpu.getFIFOCount();
+  if (fifoCount >= 1024) 
+  {
+        // reset so we can continue cleanly
+        mpu.resetFIFO();
+        Serial.println(F("FIFO overflow!"));
+    // otherwise, check for DMP data ready interrupt (this should happen frequently)
+    } else{
+
+        // read a packet from FIFO
+  while(fifoCount >= packetSize){ // Lets catch up to NOW, someone is using the dreaded delay()!
+    mpu.getFIFOBytes(fifoBuffer, packetSize);
+    // track FIFO count here in case there is > 1 packet available
+    // (this lets us immediately read more without waiting for an interrupt)
+    fifoCount -= packetSize;
+  }
+        #ifdef OUTPUT_QUATERNION
+            // display quaternion values in easy matrix form: w x y z
+            mpu.dmpGetQuaternion(&q, fifoBuffer);
+            // Serial.print("quat\t");
+            // Serial.print(q.w);
+            // Serial.print("\t");
+            // Serial.print(q.x);
+            // Serial.print("\t");
+            // Serial.print(q.y);
+            // Serial.print("\t");
+            // Serial.println(q.z);
+        #endif
+    }
+  #endif
+  
   float crosspr,ws,wd;
   float refX=0.9848,refY=-0.1736;
   //wA,wB; //commanded wheel speeds
-  float outScale=60;
+
+  battery_level = get_battery();
+  //Serial.println(battery_level);
+  //print_battery();
+  //float outScale=60;
+  float outScale = (1024/battery_level) *15;
+  
 
  // ws=5;
 
-   //accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+   //mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
    mag.getHeading(&mx, &my, &mz);
 
    Get_Position();
@@ -188,15 +403,16 @@ double refLength=sqrt(pow(refX,2)+pow(refY,2));
 refX=refX/refLength;
 refY=refY/refLength;
 
-Serial.print("\t refX: ");
-Serial.print(refX);
-Serial.print("\t refY: ");
-Serial.print(refY);
-Serial.print("\t HeadinX: ");
-Serial.print(HeadingX);
-Serial.print("\t HeadinY: ");
-Serial.println(HeadingY);
-
+#ifdef PRINT_REF
+ Serial.print("\t refX: ");
+  Serial.print(refX);
+  Serial.print("\t refY: ");
+  Serial.print(refY);
+  Serial.print("\t HeadinX: ");
+  Serial.print(HeadingX);
+  Serial.print("\t HeadinY: ");
+  Serial.println(HeadingY);
+#endif
 
 
 crosspr=refX*my_cal-refY*mx_cal; //compute cross product between desired heading and heading
@@ -254,13 +470,39 @@ else
 InB1 = not InA1;
 InB2 = not InA2;
 
+//  Serial.print("wA: ");
+//  Serial.print(wA);
+//  Serial.print("\t outA: ");
+//  Serial.println(outA);
 
-//digitalWrite(InAPin1, InA1);
-//digitalWrite(InBPin1, InB1);
-//analogWrite(analogOutPin1, outA);
+//  Serial.print("wB: ");
+//  Serial.print(wB);
+//  Serial.print("\t outB: ");
+//  Serial.println(outB);
 
-//digitalWrite(InAPin2, InA2);
-//digitalWrite(InBPin2, InB2);
-//analogWrite(analogOutPin2, outB);
+if (battery_level < 300)
+{
+  outA = 0;
+  outB = 0;
+}
+
+#ifdef ROS_MOVE_CMD
+  if (!move_robot)
+  {
+    outA = 0;
+    outB = 0;
+    
+  }
+#endif
+
+digitalWrite(InAPin1, InA1);
+digitalWrite(InBPin1, InB1);
+analogWrite(analogOutPin1, outA);
+
+digitalWrite(InAPin2, InA2);
+digitalWrite(InBPin2, InB2);
+analogWrite(analogOutPin2, outB);
+
+nh.spinOnce();
 //delay (50);
 }
