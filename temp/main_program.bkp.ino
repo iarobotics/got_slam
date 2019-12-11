@@ -19,9 +19,84 @@
 //#define ROS_MOVE_CMD
 #define ROS_TELEOP
 #define SUB_TOPIC "/turtle1/cmd_vel"
-#define TEMP
 
-#define TELEOP_SPD 30
+ros::NodeHandle nh;
+
+//ros::Publisher chatter("chatter", &str_msg);
+geometry_msgs::Pose pose_msg;
+ros::Publisher robot_pose("robot_pose", &pose_msg);
+
+#ifdef ROS_MOVE_CMD
+  boolean move_robot = false;
+  
+  void messageCb(const std_msgs::Int8& msg)
+  {
+    if(msg.data == 1)
+      move_robot = true;   //blink the led
+  else
+    move_robot=false;   //turn off the led
+  }
+   
+  //ros::Subscriber sub("LED", &messageCb);
+  ros::Subscriber<std_msgs::Int8> sub("LED", &messageCb);
+#endif
+////////////////
+
+#ifdef ROS_TELEOP
+  boolean move_robot = false;
+  
+  void teleopCb(const geometry_msgs::Twist& msg)
+  {
+    Serial.print(msg.linear.x);
+    Serial.print(', ');
+    Serial.print(msg.linear.y);
+    Serial.print(', ');
+    Serial.print(msg.linear.z);
+    Serial.print('; ');
+
+    Serial.print(msg.angular.x);
+    Serial.print(', ');
+    Serial.print(msg.angular.y);
+    Serial.print(', ');
+    Serial.println(msg.angular.z);
+
+    #ifdef TEMP
+    if (msg.angular.z < 0)
+    {
+      move_robot = true;
+
+    }
+    else if(msg.angular.z > 0)
+    {
+      move_robot = false;
+      outA = 0;
+      outB = 0;
+    }
+
+    if(move_robot)
+    {
+      if(msg.linear.x > 0)
+      {
+        //move_robot = true;
+        InA1 = LOW;
+        InB1 = not InA1;
+        outA = 100;
+      }
+      else
+      {
+        InA2 = HIGH;
+        InB2 = not InA2;
+        outB = 100;
+        //move_robot = false;
+      }
+    }
+    #endif
+    
+  }
+   
+  ros::Subscriber<geometry_msgs::Twist> teleop_sub(SUB_TOPIC, &teleopCb);
+
+#endif
 
 MPU6050 mpu;
 HMC5883L mag;
@@ -77,7 +152,7 @@ int Pos_Cnt=0;
 double xPos,yPos,zPos; //Position Data from GoT
 float angle, distance;
 //double ref_Pos[2][2]={{6000.0,0.0},{2000.0,0.0}};
-double ref_Pos[2][2]={{2000.0,0.0},{5000.0,0.0}};
+double ref_Pos[2][2]={{9000.0,0.0},{6000.0,0.0}};
 double HeadingX,HeadingY;
 int done=0;
 
@@ -91,97 +166,6 @@ uint8_t fifoBuffer[64]; // FIFO storage buffer
 
 // orientation/motion vars
 Quaternion q;           // [w, x, y, z]         quaternion container
-
-
-ros::NodeHandle nh;
-
-//ros::Publisher chatter("chatter", &str_msg);
-geometry_msgs::Pose pose_msg;
-ros::Publisher robot_pose("robot_pose", &pose_msg);
-
-#ifdef ROS_MOVE_CMD
-  boolean move_robot = false;
-  
-  void messageCb(const std_msgs::Int8& msg)
-  {
-    if(msg.data == 1)
-      move_robot = true;   //blink the led
-  else
-    move_robot=false;   //turn off the led
-  }
-   
-  //ros::Subscriber sub("LED", &messageCb);
-  ros::Subscriber<std_msgs::Int8> sub("LED", &messageCb);
-#endif
-
-#ifdef ROS_TELEOP
-  boolean move_robot = false;
-  boolean move_forward = false;
-  boolean move_backwards = false;
-  
-  void teleopCb(const geometry_msgs::Twist& msg)
-  {
-    Serial.print(msg.linear.x);
-    Serial.print(', ');
-    Serial.print(msg.linear.y);
-    Serial.print(', ');
-    Serial.print(msg.linear.z);
-    Serial.print('; ');
-
-    Serial.print(msg.angular.x);
-    Serial.print(', ');
-    Serial.print(msg.angular.y);
-    Serial.print(', ');
-    Serial.println(msg.angular.z);
-
-    #ifdef TEMP
-    if (msg.angular.z < 0)
-    {
-      move_robot = true;
-
-    }
-    else if (msg.angular.z > 0)
-    {
-      move_robot = false;
-      move_forward = false;
-      move_backwards = false;
-    }
-
-    if(move_robot)
-    {
-      if(msg.linear.x > 0)
-      {
-        move_forward = true;
-        move_backwards = false;
-        //move_robot = true;
-        //InA1 = LOW;
-        //InB1 = not InA1;
-
-        //InA2 = not InA1;
-        //InB2 = not InA2;
-    
-      }
-      else if (msg.linear.x < 0)
-      {
-        move_forward = false;
-        move_backwards = true; 
-        //InA1 = HIGH;
-        //InB1 = not InA1;
-
-        //InA2 = not InA1;
-        //InB2 = not InA2;
-      }
-      //outA = 100;
-      //outB = 100;
-    }
-    #endif
-    
-  }
-   
-  ros::Subscriber<geometry_msgs::Twist> teleop_sub(SUB_TOPIC, &teleopCb);
-
-#endif
-
 
 void setup() {
   delay(3000);
@@ -333,8 +317,7 @@ void Compute_Heading_Pt()
 // pose_msg.position = xPos, yPos, zPos;
  pose_msg.position.x = xPos;
  pose_msg.position.y = yPos;
- //pose_msg.position.z = zPos;
- pose_msg.position.z = (float) done;
+ pose_msg.position.z = zPos;
 
  pose_msg.orientation.x = q.x;
  pose_msg.orientation.y = q.y;
@@ -466,15 +449,12 @@ refY=refY/refLength;
 
 
 crosspr=refX*my_cal-refY*mx_cal; //compute cross product between desired heading and heading
-crosspr=-crosspr/(abs(crosspr)+0.1); // crosspr is the angle away from reference
+crosspr=-crosspr/(abs(crosspr)+0.1);
 
 cross_int+=0*crosspr;
-// Time derivative of the heading vector ((xb_dot -xa_dot)/L = r* u(Wb-Wa))
-//angle change = r/l * (Wb-Wa). Where (Wb-Wa) = wd.
 wd=2.0*crosspr;//+0.01*cross_int;
 ws=5;
-//if(abs(ref_Pos[1][0]-xPos)<1500.0 && abs(ref_Pos[1][1]-xPos)<1500.0)
-if(abs(ref_Pos[1][0]-xPos)<500.0 && abs(ref_Pos[1][1]-yPos)<500.0)
+if(abs(ref_Pos[1][0]-xPos)<1500.0 && abs(ref_Pos[1][1]-xPos)<1500.0)
 {
    done=1;
 }
@@ -484,7 +464,7 @@ if(done==1)
   wd=0;
 }
 
-float out_diff=(wd-0.97*wd_old)/(1-0.97); // High pass filter of wd. In order to compensate for the low -pass filter of the DC motors
+float out_diff=(wd-0.97*wd_old)/(1-0.97);
 wd_old=wd;
 //out_diff=0.0;
 wA=(ws+out_diff)/2;
@@ -533,33 +513,12 @@ InB2 = not InA2;
 //  Serial.print("\t outB: ");
 //  Serial.println(outB);
 
-if ((battery_level < 300) || (!move_robot))
-//if (battery_level < 300)
+if (battery_level < 300)
 {
   outA = 0;
   outB = 0;
 }
 
-if (move_forward)
-{
-  InA1 = LOW;
-  InB1 = not InA1;
-
-  InA2 = InA1;
-  InB2 = not InA2;
-  outA = TELEOP_SPD;
-  outB = TELEOP_SPD;
-}
-else if (move_backwards)
-{
-  InA1 = HIGH;
-  InB1 = not InA1;
-
-  InA2 = InA1;
-  InB2 = not InA2;
-  outA = TELEOP_SPD;
-  outB = TELEOP_SPD;
-}
 
 digitalWrite(InAPin1, InA1);
 digitalWrite(InBPin1, InB1);
