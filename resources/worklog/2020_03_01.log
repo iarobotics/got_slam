@@ -1,0 +1,51 @@
+ROS_MASTER and RPI must be on the same network.
+ - CAn't share wi-fi connection on Windows
+ - Connected both devices to AAU-1-DAY. Devices can't ping each other
+ - Android devvice can't share WiFi either (only data).
+ - Must test in Windows as it allows WiFI sharing.
+ - Tried a random ethernet cable in the lab - No interbet connectivity
+ - Only option now is to have a Windows PC sharing WiFi
+ 	- Tried the GoT_PC but the network is unstable - Probably as it's installing updates.
+
+
+Changed the folder structure so that it can be used as a ROS workspace:
+ - Arduino files and libraries located under ./Arduino
+ - Scripts written so far and zipped book resources under ./resources
+ - Rest of the files are ROS specific. Once it's uploaded to git, clone it into <ros_workspace>/src and then run "cd <ros_workspace> && catkin_make"
+
+Added some files for testing (from mastering ROS book) under ./Arduino/mastering_ros_book for testing motors ,encoders and imu.
+
+TESTING:
+ - simple_motor_test 				>>>OK
+			 ///Left Motor  Pins
+			#define INA_2 12
+			#define INB_2 11
+			#define PWM_2 10
+
+			///Right Motor Pins
+			#define INA_1 26
+			#define INB_1 28
+			#define PWM_1 30
+
+ - simple_encoder_test  			>>>OK
+
+ 		- Had to adjust pin numbers so forward/backward motion is registered correctly for both wheels. Namely:
+				int Left_Encoder_PinA = 3;
+				int Left_Encoder_PinB = 2;
+
+				int Right_Encoder_PinA = 5;
+				int Right_Encoder_PinB = 6;
+		- Normal Update_Enoders() print function causes some issues with the serial port, preventing program upload.
+		  Added print function in the interrupt function.
+
+
+>>>>IT'S ALIVE (for teleop)
+Summary again:
+ - Tensy connected to ROS_MASTER (PC, not RPI in this case)
+ - Clone repo into <ros_workspace>/src and then run "cd <ros_workspace> && catkin_make"
+ - Install dependecies (rplidar_ros, move_nase)	TODO: update this list
+ - Using arduino IDE upload ./mastering_ros_book/chefbot/chefbot.ino to Teensy
+ - $ roslaunch got_slam mod2_robot_standalone.launch
+ - $ roslaunch got_slam mod_keyboard_teleop.launch (at this stage the robot can be operated using the keyboard)
+
+>>> Include robot test in got_slam (Can the entire directory act as a ROS workspace). Upload to git and switch to Windows.

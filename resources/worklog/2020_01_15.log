@@ -1,0 +1,85 @@
+BAT_PIN(23) xx IMU_INT(21) - Analog pin - Need to connect to a digital pin (24)
+
+Connect phome to wifi           -- DONE
+Talk to Henrik about access     -- DONE
+Get teensy-ros communication
+        - Make the robot accept movement command (ROS teleop to PWM)
+        - Install LIDAR support of RPi
+        - Mappping using rviz
+        
+        
+Installl ubuntu kinetic                                                                             DONE
+Install rosserial and required packages from masteringrosforrobotprogramming Chapter 11             DONE
+    -- Additional requirement ros-kinetic-turtlebot-description (found as turtlebot3 in melodic)
+Check serial connection works in WSL                                                                FAIL
+        Serial ports can be read by e.g. screen but rosserial doesn't seem to work. Dropping for now
+        
+        
+>>> Going back to Ubuntu Bionic (VM) running ROS melodic:
+ - Check rosserial works as expected                                                                 DONE        
+ - Install kobuki_description in another workspace and catkin_make, after that make the book code    DONE
+ - Compilation is successful but trying to run:
+        roslaunch chefbot_bringup robot_standalone.launch
+    Throws an error about missing turtlebot_description
+ - Install turtlebot_description from source
+  
+        /// Catkin_make successful (source turtlebot_description in ~/ros_temp)         SUCCESS
+        /// roslaunch chefbot_bringup robot_standalone.launch                           SUCCESS
+        
+ - Upload arduino code to teensy (remove ultrasonic part)
+    All nodes run fine but the robot doesn't move when given teleop commands.
+    
+>>> Perform motor test (book_map/simple_motor_test): Got the following correct mappings:
+    ///Left Motor  Pins
+    #define INA_2 12
+    #define INB_2 11
+    #define PWM_2 10
+
+    ///Right Motor Pins
+    #define INA_1 26
+    #define INB_1 28
+    #define PWM_1 30
+
+    #define SPD 100
+    
+>> Encoder test sample reading (needs a small delay otherwise cannot read):
+    -1136	2866  (Left_Wheel(A), Right_Wheel(B))
+    
+>> IMU test, seems in order as well (values are displayed and are changing if the robot is moved)
+
+
+>> Robot still doesn't move when given teleop commands
+
+>>>> Replicate the process on the RPi(Assuming the VM is at fault)
+
+ - Install prerequisites
+    sudo apt-get -y install ros-melodic-rosserial-arduino ros-melodic-rosserial-embeddedlinux ros-melodic-rosserial-windows ros-melodic-rosserial-server ros-melodic-rosserial-python ros-melodic-depthimage-to-laserscan ros-melodic-robot-pose-ekf ros-melodic-yocs-cmd-vel-mux ros-melodic-move-base-msgs ros-melodic-openni-launch ros-melodic-gmapping ros-melodic-amcl ros-melodic-map-server
+    
+    Running into issues with dependencies: Additional packages need to be installed?
+    
+    Performing apt upgrade and dist-upgrade + clean + autoremove
+    
+    
+ ros-melodic-map-server : Depends: libsdl-image1.2-dev but it is not going to be installed
+                          Depends: libsdl1.2-dev but it is not going to be installed
+  
+libpulse-dev
+
+
+Using WSL
+
+Board port: /dev/ttyS5 (for Teensy 3.6)
+Need to modify chefbot_bringup/param/board_config with the correct port (as it assumes /de/ttyACM0)
+
+SUCCESS Scenario (Achieved in VM, potentially works in WSL and Rpi as well)
+ - Install prerequisites
+ - Source install kobuki_description, turtlebot-description (if ros melodic otherwise through apt-get)
+ - Use chapter 9 code from rosroboticsprojects.pdf (masteringros.pdf code is broken for teleop)
+ - Remove chefbot_gazebo (if ros melodic)
+ - Transfer chapter_9 folder into a ros_workspace/src folder and then cd.. && catkin_make
+ 
+  - roslaunch chefbot_bringup robot_standalone.launch       -- Main driver
+  - roslaunch chefbot_bringup keyboard_teleop.launch        -- Keyboard teleop
+  
+  TODO: Integrate Lidar node
+        Starting point chebot_bringup/launch/3dsensor.laung - Laserscan sensor, replace with rplidar

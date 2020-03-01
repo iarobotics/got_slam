@@ -1,0 +1,65 @@
+Have to make the robot move by accepting ROS cmds.
+
+Assumed preliminaries:
+ - TEENSY: Capable of reading sensors and transmitting them back to ROS
+ 	- Book doesn't use ros_lib while Turtlebot3 does
+ - LIDAR (RPlidar A1) connected to RPI:
+ - PC as ROS_MASTER
+ - RPI as ROS_SLAVE
+
+- Initial test of uploading the book Arduino code to teensy allowed moving the robot wheels using keyboard_teleop
+
+ROS_MASTER
+ - Changed ROS_MASTER to change it's ip automatically (reload the environment if changing networks) - TODO: Make the same change for RPI
+ - Got the code from the book again in book/
+ - Follow the steps in book/chefbot_code/chefbot_bringup/launch/robot_standalone.launch
+ - Duplicate above file to ./mod_robot_standalone.launch and try to launch stuff little by little
+ - Avoid building the whole book project so create a new package in ~/catkin_ws named robot_test
+ - roslaunch robot_test launchpad_node.py - Runs but encouters an error
+ - rosrun launchpad_node works without error but the topic don't contain any data
+
+
+TEST:
+ - TEENSY: Upload program which just writes static values and a LED ligths up when receiving PWM.
+ 		Wrote got_slam/Arduino/Blink to publish IMU acc and gyro (no interrupts or DMP) and static values for Encoders.
+ 		Expect the LED on pin 13() and 12 to blink as if commands are received for left/right motor
+
+ - ROS_MASTER: in pkg robot_test removed unnecessaru references.
+ 		Running  "roslaunch robot_test mod1_robot_standalone.launch" successfully runs the launchpad node. (Verify with "rostopic echo /serial").
+ 		Defined new launch mod2_.... All the nodes and toic seem to be launched correctly - Have to verify on the actual robot
+
+
+Steps:
+	1. roslaunch robot_test mod2_robot_standalone.launch
+	2. roslaunch robot_test mod_keyboard_teleop.launch
+
+Next steps (as per book):
+//////////////////
+If we want to map the robot environment, we can start the gmapping launch file like we did in the simulation:
+	$ roslaunch chefbot_bringup gmapping_demo.launch
+You can visualize the map building in Rviz using the following command:
+	$ roslaunch chefbot_bringup view_navigation.launch
+//////////////////
+
+For these steps to work we need Lidar data as well, have to look into what the above launch files do.
+
+ - In pkg robot_test moved user_modified launch files in to ./launch/mod
+ - Copying the rest of the launch files from the book see what can be done
+
+gmapping_demo:
+ 	3dsensor.launch
+ 	gmapping.launch
+ 	move_base.launch
+
+This is where it gets tricky as the setup assumes a Kinect camera. Maybe it's possible to get the lidar launch from turtlebot3 instead.
+
+3dsensor end by using depthimage_to_laserscan - Maybe we can provide the laserscan directly? ---- sensor_msgs/LaserScan
+
+RPlidar A1 by default launches RPlidar node:
+	roslaunch rplidar_ros rplidar.launch.
+
+	Rplidar also uses sensor_msgs/LaserScan - maybe it can be switched directly
+			Note: topic: /scan
+	Modified amcl_demo.launch and gmapping_demo.launch to make use of rplidar_ros.
+
+	Tomorrow test on the robot
