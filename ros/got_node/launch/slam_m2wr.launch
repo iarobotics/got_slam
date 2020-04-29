@@ -1,0 +1,108 @@
+<launch>
+
+  <arg name="x_pos" default="2.5"/>
+  <arg name="y_pos" default="-4.0"/>
+  <arg name="z_pos" default="0.0"/>
+  <arg name="scan_topic"  default="/m2wr/laser/scan" />
+  <arg name="base_frame"  default="link_chassis"/>
+  <arg name="odom_frame"  default="odom"/>
+
+  <!-- Launch gazebo simulation -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <!-- <arg name="world_name" value="$(find got_node)/worlds/world02_mod.world"/> -->
+    <!-- <arg name="world_name" value="$(find rosbot_gazebo)/worlds/maze.world"/> -->
+    <arg name="world_name" value="$(find got_node)/worlds/maze.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+
+  <!-- Spawn - Launch m2wr model -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find m2wr_description)/urdf/m2wr.xacro'" />
+  
+  <node name="mybot_spawn" pkg="gazebo_ros" type="spawn_model" output="screen"
+        args="-urdf -param robot_description -model m2wr -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos)" />
+
+  <!-- Publish location of GoT beacons -->
+  <node pkg="tf" type="static_transform_publisher" name="beacon1_broadcaster" args="-5 -5 5 0 0 0 1 odom beacon1 100" />
+  <node pkg="tf" type="static_transform_publisher" name="beacon2_broadcaster" args="5 -5 5 0 0 0 1 odom beacon2 100" />
+  <node pkg="tf" type="static_transform_publisher" name="beacon3_broadcaster" args="0 0 5 0 0 0 1 odom beacon3 100" />
+  <node pkg="tf" type="static_transform_publisher" name="beacon4_broadcaster" args="-5 5 5 0 0 0 1 odom beacon4 100" />
+  <node pkg="tf" type="static_transform_publisher" name="beacon5_broadcaster" args="5 5 5 0 0 0 1 odom beacon5 100" />
+
+  <!-- <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_gazebo_rviz.launch" /> -->
+  <!-- <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_world.launch" /> -->
+
+<!--   <node pkg="gmapping" type="slam_gmapping" name="gmapping">
+      <param name="base_frame" value="base_link"/>
+      <param name="odom_frame" value="odom" />
+      <param name="delta" value="0.1" />
+  </node> -->
+
+  <!-- Launch SLAM node  and rviz -->
+<!--   <include file="$(find turtlebot3_slam)/launch/turtlebot3_slam.launch">
+    <arg name="slam_methods" value="hector"/>
+  </include> -->
+
+<!--   <node pkg="move_base" type="move_base" name="move_base" output="screen">
+      <param name="controller_frequency" value="10.0"/>
+      <rosparam file="$(find got_node)/config/costmap_common_params.yaml" command="load" ns="global_costmap" />
+      <rosparam file="$(find got_node)/config/costmap_common_params.yaml" command="load" ns="local_costmap" />
+      <rosparam file="$(find got_node)/config/local_costmap_params.yaml" command="load" />
+      <rosparam file="$(find got_node)/config/global_costmap_params.yaml" command="load" />
+      <rosparam file="$(find got_node)/config/trajectory_planner.yaml" command="load" />
+  </node> -->
+  
+  <!-- Launch SLAM node -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"></node>
+  
+  <node pkg="rviz" type="rviz" name="rviz"></node>
+
+  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+    <param name="base_frame" value="$(arg base_frame)"/>
+    <param name="odom_frame" value="$(arg odom_frame)"/>
+    <param name="map_update_interval" value="5.0"/>
+    <param name="maxUrange" value="6.0"/>
+    <param name="maxRange" value="8.0"/>
+    <param name="sigma" value="0.05"/>
+    <param name="kernelSize" value="1"/>
+    <param name="lstep" value="0.05"/>
+    <param name="astep" value="0.05"/>
+    <param name="iterations" value="5"/>
+    <param name="lsigma" value="0.075"/>
+    <param name="ogain" value="3.0"/>
+    <param name="lskip" value="0"/>
+    <param name="minimumScore" value="200"/>
+    <param name="srr" value="0.01"/>
+    <param name="srt" value="0.02"/>
+    <param name="str" value="0.01"/>
+    <param name="stt" value="0.02"/>
+    <param name="linearUpdate" value="0.5"/>
+    <param name="angularUpdate" value="0.436"/>
+    <param name="temporalUpdate" value="-1.0"/>
+    <param name="resampleThreshold" value="0.5"/>
+    <param name="particles" value="80"/>
+  <!--
+    <param name="xmin" value="-50.0"/>
+    <param name="ymin" value="-50.0"/>
+    <param name="xmax" value="50.0"/>
+    <param name="ymax" value="50.0"/>
+  make the starting size small for the benefit of the Android client's memory...
+  -->
+    <param name="xmin" value="-1.0"/>
+    <param name="ymin" value="-1.0"/>
+    <param name="xmax" value="1.0"/>
+    <param name="ymax" value="1.0"/>
+
+    <param name="delta" value="0.05"/>
+    <param name="llsamplerange" value="0.01"/>
+    <param name="llsamplestep" value="0.01"/>
+    <param name="lasamplerange" value="0.005"/>
+    <param name="lasamplestep" value="0.005"/>
+    <remap from="scan" to="$(arg scan_topic)"/>
+  </node>
+
+</launch>

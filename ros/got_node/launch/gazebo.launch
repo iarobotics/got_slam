@@ -1,0 +1,29 @@
+<launch>
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
+  <arg name="x_pos" default="0.0"/>
+  <arg name="y_pos" default="5.0"/>
+  <arg name="z_pos" default="0.0"/>
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <!-- <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_world.world"/> -->
+    <arg name="world_name" value="$(find rosbot_gazebo)/worlds/maze.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+  <node pkg="tf" type="static_transform_publisher" name="beacon1_broadcaster" args="-5 -5 5 0 0 0 1 odom beacon1 100" />
+  <node pkg="tf" type="static_transform_publisher" name="beacon2_broadcaster" args="5 -5 5 0 0 0 1 odom beacon2 100" />
+  <node pkg="tf" type="static_transform_publisher" name="beacon3_broadcaster" args="0 0 5 0 0 0 1 odom beacon3 100" />
+  <node pkg="tf" type="static_transform_publisher" name="beacon4_broadcaster" args="-5 5 5 0 0 0 1 odom beacon4 100" />
+  <node pkg="tf" type="static_transform_publisher" name="beacon5_broadcaster" args="5 5 5 0 0 0 1 odom beacon5 100" />
+
+  <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_gazebo_rviz.launch" />
+
+  <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf"  args="-urdf -model turtlebot3_$(arg model) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -param robot_description" />
+
+</launch>
