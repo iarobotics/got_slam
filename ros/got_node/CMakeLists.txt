@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(got_node)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -212,3 +212,9 @@ target_link_libraries(tf_listener ${catkin_LIBRARIES})
 
 add_executable(got_position src/got_position.cpp)
 target_link_libraries(got_position ${catkin_LIBRARIES})
+
+add_executable(got_position2 src/got_position2.cpp)
+target_link_libraries(got_position2 ${catkin_LIBRARIES})
+
+add_executable(got_position3 src/got_position3.cpp)
+target_link_libraries(got_position3 ${catkin_LIBRARIES})

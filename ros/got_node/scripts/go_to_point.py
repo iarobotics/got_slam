@@ -35,7 +35,7 @@ desired_position_old_ = Point()
 # publishers
 pub = None
 
-# (x,y) position goal. Robot starts (2.5, -4.0)
+# (x,y) position goal. Robot starts (2.0, -4.0)
 goal_points_ = [
     (-2.0, -4.0),
     (-2.0, -2.0),

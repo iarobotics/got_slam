@@ -24,12 +24,12 @@
   <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf"  args="-urdf -model turtlebot3_$(arg model) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -param robot_description" />
 
   <!-- Publish location of GoT beacons -->
-  <node pkg="tf" type="static_transform_publisher" name="beacon1_broadcaster" args="-5 -5 5 0 0 0 1 odom beacon1 100" />
+<!--   <node pkg="tf" type="static_transform_publisher" name="beacon1_broadcaster" args="-5 -5 5 0 0 0 1 odom beacon1 100" />
   <node pkg="tf" type="static_transform_publisher" name="beacon2_broadcaster" args="5 -5 5 0 0 0 1 odom beacon2 100" />
   <node pkg="tf" type="static_transform_publisher" name="beacon3_broadcaster" args="0 0 5 0 0 0 1 odom beacon3 100" />
   <node pkg="tf" type="static_transform_publisher" name="beacon4_broadcaster" args="-5 5 5 0 0 0 1 odom beacon4 100" />
   <node pkg="tf" type="static_transform_publisher" name="beacon5_broadcaster" args="5 5 5 0 0 0 1 odom beacon5 100" />
-
+ -->
   <!-- <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_gazebo_rviz.launch" /> -->
   <!-- <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_world.launch" /> -->
 
@@ -40,9 +40,9 @@
   </node> -->
 
   <!-- Launch SLAM node  and rviz -->
-  <include file="$(find turtlebot3_slam)/launch/turtlebot3_slam.launch">
+<!--   <include file="$(find turtlebot3_slam)/launch/turtlebot3_slam.launch">
     <arg name="slam_methods" value="hector"/>
-  </include>
+  </include> -->
 
 <!--   <node pkg="move_base" type="move_base" name="move_base" output="screen">
       <param name="controller_frequency" value="10.0"/>
