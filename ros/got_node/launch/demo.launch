@@ -126,11 +126,9 @@
       <rosparam file="$(find got_node)/config/tb3burger/move_base_params.yaml" command="load" />
       <rosparam file="$(find got_node)/config/tb3burger/dwa_local_planner_params_$(arg model).yaml" command="load" />
       <!-- <remap from="cmd_vel" to="$(arg cmd_vel_topic)"/> -->
-      <remap from="odom" to="$(arg odometry_filtered_topic)" if="$(arg use_robot_localization)"/>
+      <remap from="odom" to="$(arg odometry_filtered_topic)"/>
       <param name="DWAPlannerROS/min_vel_x" value="0.0" if="$(arg move_forward_only)" />
     </node>
-
-    <node pkg="got_node" type="move_base_goal_publisher" name="move_base_goal_publisher" output="screen" />
   </group>
 
   <!-- ROSbot move_base configuration -->

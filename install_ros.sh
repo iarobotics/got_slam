@@ -18,8 +18,10 @@ sudo rosdep init
 rosdep update
 
 
+## Install requirements
 sudo apt-get -y install ros-kinetic-map-server ros-kinetic-amcl ros-kinetic-move-base ros-kinetic-navigation
 sudo apt-get -y install ros-kinetic-teleop-twist-joy ros-kinetic-teleop-twist-keyboard ros-kinetic-urdf ros-kinetic-xacro ros-kinetic-hector-mapping
+sudo apt-get -y install ros-kinetic-plotjuggler
 
 mkdir -p ~/catkin_ws/src
 

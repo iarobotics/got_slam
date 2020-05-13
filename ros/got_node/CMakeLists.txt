@@ -218,3 +218,12 @@ target_link_libraries(got_position2 ${catkin_LIBRARIES})
 
 add_executable(got_position3 src/got_position3.cpp)
 target_link_libraries(got_position3 ${catkin_LIBRARIES})
+
+add_executable(send_waypoints src/send_waypoints.cpp)
+target_link_libraries(send_waypoints ${catkin_LIBRARIES})
+
+add_executable(move_base_goal_publisher src/move_base_goal_publisher.cpp)
+target_link_libraries(move_base_goal_publisher ${catkin_LIBRARIES})
+
+add_executable(got_position_pi src/got_position_pi.cpp)
+target_link_libraries(got_position_pi ${catkin_LIBRARIES})                                                        

@@ -1,12 +1,6 @@
 #include <ros/ros.h>
-#include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <tf/transform_datatypes.h>
-
-#define NUM_BEACONS 5
-int beacon_locations[NUM_BEACONS][3] = { {-5,-5,5}, {5,-5,5}, {0,0,5}, {-5,5,5}, {5,5,5}};
-double x_est=0, y_est=0, z_est=0;
-
 
 class TeleopTurtle
 {
@@ -34,7 +28,7 @@ TeleopTurtle::TeleopTurtle()
 {
   odom_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("got_pose", 1);
 
-  odom_sub_ = nh_.subscribe<geometry_msgs::Point>("teensy_got", 10, &TeleopTurtle::odomCallback, this);
+  odom_sub_ = nh_.subscribe<geometry_msgs::Point>("got_teensy", 10, &TeleopTurtle::odomCallback, this);
 }
 
 void TeleopTurtle::odomCallback(const geometry_msgs::Point::ConstPtr& msg)

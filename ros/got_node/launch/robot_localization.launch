@@ -25,6 +25,9 @@
   <!-- odom -> base_link -->
   <!-- robot_localization EKF node for the odom frame -->
   <node pkg="robot_localization" type="ekf_localization_node" name="robot_localization_ekf_node_odom" clear_params="true">
+
+    <rosparam command="load" file="$(find robot_localization)/params/ekf_template.yaml" />
+
     <param name="frequency" value="10." />  
     <param name="sensor_timeout" value="0.2" />  
     <param name="two_d_mode" value="true" />
@@ -49,7 +52,7 @@
                                     true, true, false,
                                     false, false, true,
                                     false, false, false]</rosparam>
-<!--     <param name="imu0" value="imu" />
+    <!-- <param name="imu0" value="imu" />
     <param name="imu0_differential" value="false"/>
     <rosparam param="imu0_config">[false, false, false,
                                    false, false, true,
