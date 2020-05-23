@@ -4,8 +4,14 @@
 <!--   <arg name="x_pos" default="2.0"/>
   <arg name="y_pos" default="-4.0"/>
   <arg name="z_pos" default="0.0"/> -->
-  <arg name="x_pos" default="0.0"/>
+
+  <!-- <arg name="x_pos" default="0.0"/>
+  <arg name="y_pos" default="0.0"/> -->
+
+  <!-- Values for bug2 - world03-->
+  <arg name="x_pos" default="0.0"/> 
   <arg name="y_pos" default="0.0"/>
+
   <arg name="z_pos" default="0.0"/>
   <!-- <arg name="yaw_init" default="3.14"/> -->
   <arg name="yaw_init" default="0.0"/>
@@ -22,18 +28,26 @@
   <arg name="odometry_filtered_topic" default="odometry/filtered_odom"/>
 
 
-  <arg name="use_move_base" default="true" />
+  <arg name="use_move_base" default="false" />
   <arg name="use_robot_localization" default="true" />
+  <arg name="use_bug" default="false" />
+  <arg name="use_plotter" default="false" />
   <arg name="odom_noise_publish_tf" default="true"/> 
   <arg name="open_rviz" default="true"/> 
+
+  <arg name="use_tb3" default="false"/> 
 
   <!-- Launch gazebo simulation -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
     <!-- <arg name="world_name" value="$(find got_node)/worlds/world02_mod.world"/> -->
     <!-- <arg name="world_name" value="$(find rosbot_gazebo)/worlds/maze.world"/> -->
     <!-- <arg name="world_name" value="$(find got_node)/worlds/maze.world"/> -->
-    <arg name="world_name" value="$(find got_node)/worlds/maze_mod.world"/>
+
+    <!-- <arg name="world_name" value="$(find got_node)/worlds/maze_mod.world"/> -->
+    <!-- <arg name="world_name" value="$(find my_worlds)/worlds/world03.world"/> -->
+    <arg name="world_name" value="$(find got_node)/worlds/maze_bug3.world"/>
     <!-- <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/> -->
+
     <arg name="paused" value="false"/>
     <arg name="use_sim_time" value="true"/>
     <arg name="gui" value="true"/>
@@ -41,22 +55,42 @@
     <arg name="debug" value="false"/>
   </include>
 
+  <!-- Launch bug2 motion planning -->
+  <group if="$(arg use_bug)">
+    <include file="$(find motion_plan)/launch/bug2.launch">
+      <arg name="initial_x" value="$(arg x_pos)" />
+      <arg name="initial_y" default="$(arg y_pos)" />
+      <arg name="des_x" default="0" />
+      <arg name="des_y" default="-4" />
+    </include>
+  </group>
+
+
 
   <!-- Do no publish odom tf if robot_localization is enabled -->
-  <node pkg="got_node" type="odometry_noise.py" name="odometry_with_noise" required = "true" output = "screen" >
+  <!-- <node pkg="got_node" type="odometry_noise.py" name="odometry_with_noise" required = "true" output = "screen" >
     <param name="~old_odom_topic" value="$(arg odom_gazebo_topic)" />
     <param name="~base_frame" value="$(arg base_frame)"/>
     <param name="~odom_noise_publish_tf" value="$(arg odom_noise_publish_tf)" unless="$(arg use_robot_localization)" />
-  </node>
+  </node> -->
 
   <!-- <node pkg="got_node" type="go_to_point.py" name="navigation"/> -->
 
 
   <!-- Launch Robot model -->
-  <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+  <group if="$(arg use_tb3)">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
 
-  <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf"  args="-urdf -model turtlebot3_$(arg model) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -Y $(arg yaw_init) -param robot_description" />
-  <!-- <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf"  args="-urdf -model $(arg model) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -Y $(arg yaw_init) -param robot_description" /> -->
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf"  args="-urdf -model turtlebot3_$(arg model) -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -Y $(arg yaw_init) -param robot_description" />
+  </group> 
+
+  <!-- <group unless="$(arg use_tb3)"> -->
+  <group>
+    <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find got_node)/urdf/2wd.xacro'" />
+    
+    <node name="mybot_spawn" pkg="gazebo_ros" type="spawn_model" output="screen"
+          args="-urdf -param robot_description -model m2wr -x $(arg x_pos) -y $(arg y_pos) -z $(arg z_pos) -Y $(arg yaw_init) -param robot_description" />
+  </group> 
 
   <!-- Publish location of GoT beacons -->
 <!--   <node pkg="tf" type="static_transform_publisher" name="beacon1_broadcaster" args="-5 -5 5 0 0 0 1 odom beacon1 100" />
@@ -87,7 +121,9 @@
 
   <group if="$(arg use_robot_localization)">
     <include file="$(find got_node)/launch/robot_localization.launch">
-      <arg name="odom_topic" value="$(arg odom_topic)"/>
+      <!-- Meanwhile it's broken to listen to odom_noisy since got_position3 is broken and not publishing -->
+      <!-- <arg name="odom_topic" value="$(arg odom_topic)"/> -->
+      <arg name="odom_topic" value="$(arg odom_gazebo_topic)"/>
       <arg name="got_topic" value="$(arg got_topic)"/>
       <arg name="x_init" value="$(arg x_pos)"/>
       <arg name="y_init" default="$(arg y_pos)"/>
@@ -150,7 +186,9 @@
           <!-- args="-d $(find turtlebot3_slam)/rviz/turtlebot3_$(arg slam_methods).rviz"/> -->
   </group>
 
+  <group if="$(arg use_plotter)">
     <node name="plotjuggler_with_layout" pkg="plotjuggler" type="PlotJuggler" required = "false" output = "screen"
           args="--nosplash --layout $(find got_node)/config/plotjuggler_layout.xml"/>
+  </group>
 
 </launch>

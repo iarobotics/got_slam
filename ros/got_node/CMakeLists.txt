@@ -226,4 +226,7 @@ add_executable(move_base_goal_publisher src/move_base_goal_publisher.cpp)
 target_link_libraries(move_base_goal_publisher ${catkin_LIBRARIES})
 
 add_executable(got_position_pi src/got_position_pi.cpp)
-target_link_libraries(got_position_pi ${catkin_LIBRARIES})                                                        
+target_link_libraries(got_position_pi ${catkin_LIBRARIES})
+
+add_executable(map_test src/map_test.cpp)
+target_link_libraries(map_test ${catkin_LIBRARIES})     

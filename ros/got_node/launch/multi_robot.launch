@@ -1,0 +1,153 @@
+<launch>
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
+  <arg name="first_tb3"  default="robot1"/>
+  <arg name="second_tb3" default="robot2"/>
+  <arg name="third_tb3"  default="robot3"/>
+
+  <arg name="first_tb3_x_pos" default="-1.0"/>
+  <arg name="first_tb3_y_pos" default="0.0"/>
+  <arg name="first_tb3_z_pos" default=" 0.0"/>
+  <arg name="first_tb3_yaw"   default=" 1.57"/>
+
+  <arg name="second_tb3_x_pos" default=" 0.0"/>
+  <arg name="second_tb3_y_pos" default="0.0"/>
+  <arg name="second_tb3_z_pos" default=" 0.0"/>
+  <arg name="second_tb3_yaw"   default=" 1.57"/>
+
+  <arg name="third_tb3_x_pos" default=" 0.0"/>
+  <arg name="third_tb3_y_pos" default=" 3.0"/>
+  <arg name="third_tb3_z_pos" default=" 0.0"/>
+  <arg name="third_tb3_yaw"   default=" 0.0"/>
+
+  <arg name="use_robot_localization" default="true" />
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <!-- <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/> -->
+    <arg name="world_name" value="$(find got_node)/worlds/maze_bug3.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>  
+
+  <group ns = "$(arg first_tb3)">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="$(arg first_tb3)" />
+    </node>
+    
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model $(arg first_tb3) -x $(arg first_tb3_x_pos) -y $(arg first_tb3_y_pos) -z $(arg first_tb3_z_pos) -Y $(arg first_tb3_yaw) -param robot_description" />
+
+
+    
+  </group>
+
+  <group ns = "$(arg second_tb3)">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="$(arg second_tb3)" />
+    </node>
+
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model $(arg second_tb3) -x $(arg second_tb3_x_pos) -y $(arg second_tb3_y_pos) -z $(arg second_tb3_z_pos) -Y $(arg second_tb3_yaw) -param robot_description" />
+  </group>
+
+  <group ns = "$(arg third_tb3)">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="$(arg third_tb3)" />
+    </node>
+
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model $(arg third_tb3) -x $(arg third_tb3_x_pos) -y $(arg third_tb3_y_pos) -z $(arg third_tb3_z_pos) -Y $(arg third_tb3_yaw) -param robot_description" />
+  </group>
+
+<!-- Publish static transfrom between robots -->
+<!-- <node pkg="tf" type="static_transform_publisher" name="odom_frames_connection" args="0 0 0 0 0 0 robot1_tf/odom robot2_tf/odom 100" /> -->
+<node pkg="tf" type="static_transform_publisher" name="r1_to_r2" args="0 0 0 0 0 0 $(arg first_tb3)/odom $(arg second_tb3)/odom 100" />
+<node pkg="tf" type="static_transform_publisher" name="r1_to_r3" args="0 0 0 0 0 0 $(arg first_tb3)/odom $(arg third_tb3)/odom 100" />
+
+  <include file="$(find turtlebot3_slam)/launch/turtlebot3_hector.launch">
+    <arg name="model" value="$(arg model)"/>
+    <!-- <arg name="configuration_basename" value="turtlebot3_lds_2d.lua"/> -->
+    <arg name="odom_frame" default="$(arg first_tb3)/odom"/>
+    <arg name="base_frame" default="$(arg first_tb3)/base_footprint"/>
+    <arg name="map_frame" default="$(arg first_tb3)/map"/>
+    <arg name="scan_subscriber_queue_size" default="5"/>
+    <arg name="scan_topic" default="$(arg first_tb3)/scan"/>
+    <arg name="map_size" default="2048"/>
+    <arg name="pub_map_odom_transform" default="true"/>
+    <arg name="tf_map_scanmatch_transform_frame_name" default="scanmatcher_frame"/>
+  </include>
+
+  <group if="$(arg use_robot_localization)">
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <!-- Meanwhile it's broken to listen to odom_noisy since got_position3 is broken and not publishing -->
+
+      <!-- <arg name="x_init" default="2.0"/> -->
+      <!-- <arg name="y_init" default="-4.0"/> -->
+      <!-- <arg name="z_init" default="0.0"/> -->
+      <!-- <arg name="yaw_init" default="3.14"/> -->
+
+      <arg name="odom_topic" value="$(arg first_tb3)/odom"/>
+      <!-- <arg name="got_topic" default="got_pose"/> -->
+      <arg name="imu_topic" value="$(arg first_tb3)/imu"/>
+      <arg name="base_link_frame" value="$(arg first_tb3)/base_footprint"/>
+      <arg name="map_frame" value="map"/>
+      <arg name="odom_frame" value="$(arg first_tb3)/odom"/>
+      <arg name="odometry_filtered_topic" value="$(arg first_tb3)/odom_filtered"/>
+      <arg name="node_name" value="$(arg first_tb3)_ekf"/>
+
+    </include>
+  </group>
+
+  <group if="$(arg use_robot_localization)">
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <!-- Meanwhile it's broken to listen to odom_noisy since got_position3 is broken and not publishing -->
+
+      <!-- <arg name="x_init" default="2.0"/> -->
+      <!-- <arg name="y_init" default="-4.0"/> -->
+      <!-- <arg name="z_init" default="0.0"/> -->
+      <!-- <arg name="yaw_init" default="3.14"/> -->
+
+      <arg name="odom_topic" value="$(arg second_tb3)/odom"/>
+      <!-- <arg name="got_topic" default="got_pose"/> -->
+      <arg name="imu_topic" value="$(arg second_tb3)/imu"/>
+      <arg name="base_link_frame" value="$(arg second_tb3)/base_footprint"/>
+      <arg name="map_frame" value="map"/>
+      <arg name="odom_frame" value="$(arg second_tb3)/odom"/>
+      <arg name="odometry_filtered_topic" value="$(arg second_tb3)/odom_filtered"/>
+      <arg name="node_name" value="$(arg second_tb3)_ekf"/>
+    </include>
+  </group>
+
+  <group if="$(arg use_robot_localization)">
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <!-- Meanwhile it's broken to listen to odom_noisy since got_position3 is broken and not publishing -->
+
+      <!-- <arg name="x_init" default="2.0"/> -->
+      <!-- <arg name="y_init" default="-4.0"/> -->
+      <!-- <arg name="z_init" default="0.0"/> -->
+      <!-- <arg name="yaw_init" default="3.14"/> -->
+
+      <arg name="odom_topic" value="$(arg third_tb3)/odom"/>
+      <!-- <arg name="got_topic" default="got_pose"/> -->
+      <arg name="imu_topic" value="$(arg third_tb3)/imu"/>
+      <arg name="base_link_frame" value="$(arg third_tb3)/base_footprint"/>
+      <arg name="map_frame" value="map"/>
+      <arg name="odom_frame" value="$(arg third_tb3)/odom"/>
+      <arg name="odometry_filtered_topic" value="$(arg third_tb3)/odom_filtered"/>
+      <arg name="node_name" value="$(arg third_tb3)_ekf"/>
+      
+    </include>
+  </group>
+
+</launch>
+
+
+<!-- ROS_NAMESPACE=robot1 roslaunch turtlebot3_slam turtlebot3_gmapping.launch set_base_frame:=robot1/base_footprint set_odom_frame:=robot1/odom set_map_frame:=robot1/map -->

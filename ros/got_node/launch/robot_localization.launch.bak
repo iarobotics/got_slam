@@ -1,20 +1,14 @@
 <launch>
 
   <!-- <arg name="odom_topic" default="odom_noisy"/> -->
+  <arg name="odom_topic" default="odom_noisy"/>
+  <arg name="got_topic" default="got_pose"/>
   <arg name="x_init" default="2.0"/>
   <arg name="y_init" default="-4.0"/>
   <arg name="z_init" default="0.0"/>
   <!-- <arg name="yaw_init" default="3.14"/> -->
   <arg name="yaw_init" default="0.0"/>
-
-  <arg name="odom_topic" default="odom"/>
-  <arg name="got_topic" default="got_pose"/>
-  <arg name="imu_topic" default="imu"/>
-  <arg name="base_link_frame" default="base_footprint"/>
-  <arg name="map_frame" default="map"/>
-  <arg name="odom_frame" default="odom"/>
-  <arg name="odometry_filtered_topic" default="odom_filtered"/>
-  <arg name="node_name" default="ekf_node"/>
+  <arg name="odometry_filtered_topic" default="odometry/filtered_odom"/>
 
 
 
@@ -30,7 +24,7 @@
 
   <!-- odom -> base_link -->
   <!-- robot_localization EKF node for the odom frame -->
-  <node pkg="robot_localization" type="ekf_localization_node" name="$(arg node_name)" clear_params="true">
+  <node pkg="robot_localization" type="ekf_localization_node" name="robot_localization_ekf_node_odom" clear_params="true">
 
     <!-- <rosparam command="load" file="$(find robot_localization)/params/ekf_template.yaml" /> -->
 
@@ -38,13 +32,12 @@
     <param name="sensor_timeout" value="0.2" />  
     <param name="two_d_mode" value="true" />
     <param name="publish_tf" value="true" />
-    <param name="map_frame" value="$(arg map_frame)" />
-    <param name="odom_frame" value="$(arg odom_frame)" />
-    <param name="base_link_frame" value="$(arg base_link_frame)" />
-    <param name="world_frame" value="$(arg odom_frame)" />
+    <param name="map_frame" value="map" />
+    <param name="odom_frame" value="odom" />
+    <param name="base_link_frame" value="base_footprint" />
+    <param name="world_frame" value="odom" />
     <param name="print_diagnostics" value="true" />
     <remap from="odometry/filtered" to="$(arg odometry_filtered_topic)" />
-    <remap from="imu" to="imu/filtered" />
     <!-- <rosparam param="initial_state">[$(arg x_init),  $(arg y_init),  $(arg z_init), -->
     <!-- <rosparam param="initial_state">[2.0,  -4.0,  0.0, -->
     <rosparam param="initial_state">[0.0,  0.0,  0.0,
@@ -59,13 +52,13 @@
                                     true, true, false,
                                     false, false, true,
                                     false, false, false]</rosparam>
-    <param name="imu0" value="$(arg imu_topic)" />
+    <!-- <param name="imu0" value="imu" />
     <param name="imu0_differential" value="false"/>
     <rosparam param="imu0_config">[false, false, false,
                                    false, false, true,
                                    false, false, false,
                                    false, false, true,
-                                   true, false, false]</rosparam>
+                                   true, false, false]</rosparam> -->
 <!--     <param name="imu0" value="imu" />
     <param name="imu0_differential" value="false"/>
     <rosparam param="imu0_config">[false, false, false,
@@ -73,13 +66,13 @@
                                    false, false, false,
                                    false, false, false,
                                    false, false, false]</rosparam> -->
-    <!-- <param name="pose0" value="$(arg got_topic)" />
+    <param name="pose0" value="$(arg got_topic)" />
     <param name="pose0_differential" value="true"/>
     <rosparam param="pose0_config">[true, true, false,
                                   false, false, false,
                                   false, false, false,
                                   false, false, false,
-                                  false, false, false]</rosparam> -->
+                                  false, false, false]</rosparam>
 
 <!--     <rosparam param="process_noise_covariance">[0.01, 0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
                                                 0,    0.01, 0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,

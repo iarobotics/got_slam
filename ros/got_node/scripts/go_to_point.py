@@ -48,19 +48,53 @@ pose_pub = None
 #     (0.0, 2.0)
 # ]
 
+# goal_points_ = [
+#     (0.0, 0.0), # starting point
+#     (-1.0, 0.0),
+#     (-2.0, 1.0),
+#     (-2.0, 4.0),
+#     (1.0, 3.0),
+#     (2.0, 4.0),
+#     (1.0, 3.0), # go back to start
+#     (-2.0, 4.0),
+#     (-2.0, 1.0),
+#     (-1.0, 0.0),
+#     (0.0, 0.0)
+# ]
+
+# goal_points_ = [
+#     (-1.0, 3.0),
+#     (2.0, 3.0),
+#     (4.0, 4.0),
+#     (6.0, 3.0),
+#     (6.0, -2.0),
+#     (4.0, -3.0),
+#     (0.0, -3.0),
+#     (0.0, 0.0), # round 2
+#     (-1.0, 3.0),
+#     (2.0, 3.0),
+#     (4.0, 4.0),
+#     (6.0, 3.0),
+#     (6.0, -2.0),
+#     (4.0, -3.0),
+#     (0.0, -3.0)
+# ]
+
 goal_points_ = [
-    (0.0, 0.0), # starting point
-    (-1.0, 0.0),
-    (-2.0, 1.0),
-    (-2.0, 4.0),
-    (1.0, 3.0),
-    (2.0, 4.0),
-    (1.0, 3.0), # go back to start
-    (-2.0, 4.0),
-    (-2.0, 1.0),
-    (-1.0, 0.0),
-    (0.0, 0.0)
+    (-1.0, 3.0),
+    (2.0, 3.0),
+    (4.0, 4.0),
+    (6.0, 3.0),
+    (6.0, -2.0),
+    (4.0, -3.0),
+    (0.0, -3.0),
+    (0.0, 2.0), # in the labyrith
+    (2.0, 2.0),
+    (2.0, -1.0),
+    (4.0, -1.0),
+    (4.0, 2.0)
 ]
+
 
 rospy.set_param('des_pos_x', goal_points_[0][0])
 rospy.set_param('des_pos_y', goal_points_[0][1])
@@ -181,11 +215,13 @@ def main():
 
     rospy.init_node('go_to_point')
 
-    pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+    # pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+    pub = rospy.Publisher('/robot1/cmd_vel', Twist, queue_size=1)
 
     pose_pub = rospy.Publisher('/goal_position_gtp', Point, queue_size=1)
     
-    sub_odom = rospy.Subscriber('/odom', Odometry, clbk_odom)
+    # sub_odom = rospy.Subscriber('/odom', Odometry, clbk_odom)
+    sub_odom = rospy.Subscriber('/robot1/odom', Odometry, clbk_odom)
 
     rate = rospy.Rate(20)
 
