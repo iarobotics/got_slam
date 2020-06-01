@@ -1,0 +1,181 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<root version="2.3.8">
+ <tabbed_widget name="Main Window" parent="main_window">
+  <plotmatrix rows="2" columns="1" tab_name="plot">
+   <plot row="0" style="Lines" col="0">
+    <range right="-102.909484" bottom="-0.245648" top="10.071557" left="-103.983538"/>
+    <limitY/>
+    <curve G="119" B="180" custom_transform="noTransform" R="31" name="/got_pose_corrected/pose/pose/position/x"/>
+    <curve G="190" B="207" custom_transform="noTransform" R="23" name="/got_teensy/x"/>
+    <curve G="201" B="56" custom_transform="noTransform" R="26" name="/odom/pose/position/x"/>
+    <curve G="76" B="193" custom_transform="noTransform" R="241" name="/odom_local_filtered/pose/position/x"/>
+    <curve G="103" B="189" custom_transform="noTransform" R="148" name="/raw_odom/pose/position/x"/>
+    <curve G="189" B="34" custom_transform="noTransform" R="188" name="/slam_out_pose/pose/position/x"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" style="Lines" col="0">
+    <range right="-102.909484" bottom="-0.522479" top="0.012743" left="-103.983538"/>
+    <limitY/>
+    <curve G="119" B="180" custom_transform="noTransform" R="31" name="/got_pose_corrected/pose/pose/position/y"/>
+    <curve G="190" B="207" custom_transform="noTransform" R="23" name="/got_teensy/y"/>
+    <curve G="201" B="56" custom_transform="noTransform" R="26" name="/odom/pose/position/y"/>
+    <curve G="76" B="193" custom_transform="noTransform" R="241" name="/odom_local_filtered/pose/position/y"/>
+    <curve G="103" B="189" custom_transform="noTransform" R="148" name="/raw_odom/pose/position/y"/>
+    <curve G="189" B="34" custom_transform="noTransform" R="188" name="/slam_out_pose/pose/position/y"/>
+    <transform value="noTransform"/>
+   </plot>
+  </plotmatrix>
+  <plotmatrix rows="2" columns="1" tab_name="compare_slam">
+   <plot row="0" style="Lines" col="0">
+    <range right="16.774964" bottom="-2.161056" top="3.270923" left="-83.265388"/>
+    <limitY/>
+    <curve G="76" B="193" custom_transform="noTransform" R="241" name="/filtered/slam_out_pose/pose/position/x"/>
+    <curve G="39" B="40" custom_transform="noTransform" R="214" name="/odom_local_filtered/pose/position/x"/>
+    <curve G="103" B="189" custom_transform="noTransform" R="148" name="/raw/slam_out_pose/pose/position/x"/>
+    <curve G="201" B="56" custom_transform="noTransform" R="26" name="/slam_out_pose/pose/position/x"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" style="Lines" col="0">
+    <range right="16.774964" bottom="-3.871471" top="0.341426" left="-83.265388"/>
+    <limitY/>
+    <curve G="76" B="193" custom_transform="noTransform" R="241" name="/filtered/slam_out_pose/pose/position/y"/>
+    <curve G="39" B="40" custom_transform="noTransform" R="214" name="/odom_local_filtered/pose/position/y"/>
+    <curve G="103" B="189" custom_transform="noTransform" R="148" name="/raw/slam_out_pose/pose/position/y"/>
+    <curve G="201" B="56" custom_transform="noTransform" R="26" name="/slam_out_pose/pose/position/y"/>
+    <transform value="noTransform"/>
+   </plot>
+  </plotmatrix>
+  <plotmatrix rows="2" columns="1" tab_name="compare_odom">
+   <plot row="0" style="Lines" col="0">
+    <range right="191.771498" bottom="-0.571048" top="2.660374" left="40.765381"/>
+    <limitY/>
+    <curve G="190" B="207" custom_transform="noTransform" R="23" name="/filtered/filtered_raw_odom/pose/position/x"/>
+    <curve G="76" B="193" custom_transform="noTransform" R="241" name="/filtered/odom_local_filtered/pose/position/x"/>
+    <curve G="76" B="193" custom_transform="noTransform" R="241" name="/filtered/slam_out_pose/pose/position/x"/>
+    <curve G="201" B="56" custom_transform="noTransform" R="26" name="/odom/pose/position/x"/>
+    <curve G="39" B="40" custom_transform="noTransform" R="214" name="/odom_local_filtered/pose/position/x"/>
+    <curve G="127" B="14" custom_transform="noTransform" R="255" name="/raw/slam_out_pose/pose/position/x"/>
+    <curve G="103" B="189" custom_transform="noTransform" R="148" name="/raw_odom/pose/position/x"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot row="1" style="Lines" col="0">
+    <range right="191.771498" bottom="-2.649525" top="2.169019" left="40.765381"/>
+    <limitY/>
+    <curve G="76" B="193" custom_transform="noTransform" R="241" name="/filtered/odom_local_filtered/pose/position/x"/>
+    <curve G="190" B="207" custom_transform="noTransform" R="23" name="/filtered/slam_out_pose/pose/position/y"/>
+    <curve G="201" B="56" custom_transform="noTransform" R="26" name="/odom/pose/position/y"/>
+    <curve G="39" B="40" custom_transform="noTransform" R="214" name="/odom_local_filtered/pose/position/x"/>
+    <curve G="127" B="14" custom_transform="noTransform" R="255" name="/raw/slam_out_pose/pose/position/y"/>
+    <curve G="103" B="189" custom_transform="noTransform" R="148" name="/raw_odom/pose/position/x"/>
+    <transform value="noTransform"/>
+   </plot>
+  </plotmatrix>
+  <currentPlotMatrix index="2"/>
+ </tabbed_widget>
+ <use_relative_time_offset enabled="1"/>
+ <!-- - - - - - - - - - - - - - - -->
+ <!-- - - - - - - - - - - - - - - -->
+ <Plugins>
+  <plugin ID="DataLoad CSV">
+   <default time_axis=""/>
+  </plugin>
+  <plugin ID="DataLoad ROS bags">
+   <use_header_stamp value="false"/>
+   <use_renaming_rules value="true"/>
+   <discard_large_arrays value="true"/>
+   <max_array_size value="100"/>
+  </plugin>
+  <plugin ID="DataLoad ULog"/>
+  <plugin ID="ROS Topic Subscriber">
+   <use_header_stamp value="false"/>
+   <use_renaming_rules value="true"/>
+   <discard_large_arrays value="true"/>
+   <max_array_size value="100"/>
+  </plugin>
+  <plugin status="idle" ID="ROS /rosout Visualization"/>
+  <plugin status="idle" ID="ROS Topic Re-Publisher"/>
+ </Plugins>
+ <!-- - - - - - - - - - - - - - - -->
+ <previouslyLoaded_Datafiles/>
+ <previouslyLoaded_Streamer name="ROS Topic Subscriber"/>
+ <!-- - - - - - - - - - - - - - - -->
+ <customMathEquations/>
+ <snippets>
+  <snippet language="JS" name="1st_derivative">
+   <global>var prevX = 0
+var prevY = 0</global>
+   <equation>dx = time - prevX
+dy = value - prevY
+prevX = time
+prevY = value
+
+return dy/dx</equation>
+  </snippet>
+  <snippet language="JS" name="1st_order_lowpass">
+   <global>var prevY = 0
+var alpha = 0.1</global>
+   <equation>prevY = alpha * value + (1.-alpha) * prevY
+
+return prevY</equation>
+  </snippet>
+  <snippet language="JS" name="2D_velocity">
+   <global>var prev_x = 0
+var prev_y = 0
+var prev_t = 0</global>
+   <equation>X = $$your_odometry/position/x$$
+Y = $$your_odometry/position/y$$
+
+var dist = sqrt( (X-prev_x)*(X-prev_x) + (Y-prev_y)*(Y-prev_y) )
+var dT = time - prev_t
+
+prev_x = X
+prev_y = Y
+prev_t = time
+
+return dist / dT</equation>
+  </snippet>
+  <snippet language="JS" name="average_two_curves">
+   <global></global>
+   <equation>a = $$PLOT_A$$
+b = $$PLOT_B$$
+
+return (a+b)/2</equation>
+  </snippet>
+  <snippet language="JS" name="integral">
+   <global>var integral = 0</global>
+   <equation>integral += value
+return integral</equation>
+  </snippet>
+  <snippet language="JS" name="rad_to_deg">
+   <global></global>
+   <equation>return value*180/3.1417</equation>
+  </snippet>
+  <snippet language="JS" name="remove_offset">
+   <global>var is_first = true
+var first_value = 0</global>
+   <equation>if (is_first)
+{
+  is_first = false
+  first_value = value
+}
+
+return value - first_value</equation>
+  </snippet>
+  <snippet language="JS" name="yaw_from_quaternion">
+   <global>// source: https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+
+function quaternionToYaw(x, y, z, w)
+{
+  // yaw (z-axis rotation)
+  t1 = 2.0 * (w * z + x * y);
+  t2 = 1.0 - 2.0 * (y * y + z * z);
+  yaw = Math.atan2(t1, t2);
+
+  return yaw
+}</global>
+   <equation>return quaternionToYaw(x, y, z, w);</equation>
+  </snippet>
+ </snippets>
+ <!-- - - - - - - - - - - - - - - -->
+</root>
+

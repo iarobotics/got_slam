@@ -1,0 +1,98 @@
+ <launch>
+  <!-- Run rosbag_square_mb.bag prior to launchis this -->
+  <arg name="namespace" default=""/>
+  <arg name="write_to_file" default="false"/>
+
+  <arg name="br_publish_odom_tf" default="true"/>
+  <arg name="br_publish_odom_topic" default="true"/>
+
+  <arg name="slam_publish_map_tf" default="true"/>
+
+  <arg name="use_ekf_local" default="false"/>
+
+  <arg name="use_ekf_global" default="false"/>
+
+  <arg name="got_topic" default="got_raw"/>
+  <arg name="use_got_position_node" default="false"/>
+
+  <!-- Enable global EKF only for using SLAM estimate -->
+  <arg name="enable_fused_slam_est" default="false"/>
+
+  <arg name="enable_ekf_got_pose" default="true"/>
+  <arg name="enable_ekf_slam_pose" default="true"/>
+
+
+ 
+  <!-- Group raw - raw_odom- > SLAM -->
+  <group ns = "$(arg namespace)">
+    <node pkg="got_node" type="tf_broadcaster" name="tf_broadcaster" required="true" output="screen">
+      <param name="namespace"  type="string" value="$(arg namespace)" />
+      <param name="publishOdomTF"  type="bool" value="$(arg br_publish_odom_tf)"/>
+      <param name="publishOdomTopic"  type= "bool" value="$(arg br_publish_odom_topic)" />
+      <param name="writeToFile"  type= "bool" value="$(arg write_to_file)" />
+    </node>
+
+    <node if="$(arg use_got_position_node)" pkg="got_node" type="got_position_pi_master_noservice" name="got_position" output="screen" required="true">
+      <param name="got_err_s"  type="double" value="10000" />
+      <param name="namespace"  type="string" value="$(arg namespace)" />
+      <param name="got_ground_truth"  type="string" value="odom" />
+      <param name="pub_got_tf"  type= "bool" value="true" />
+      <param name="gotwriteToFile"  type="bool" value="false" />
+    </node>
+
+    <!-- Publish static transform of the laser. Define your sensor offset here -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_laser" required="true"  args="0.065 0 0.098 0 0 0  $(arg namespace)/base_footprint $(arg namespace)/laser"/>
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu_link" required="true"  args="0 0 0 0 0 0  $(arg namespace)/base_footprint $(arg namespace)/imu_link"/>
+
+    <include file="$(find turtlebot3_slam)/launch/turtlebot3_hector.launch">
+      <arg name="odom_frame" value="$(arg namespace)/odom"/>
+      <arg name="base_frame" value="$(arg namespace)/base_footprint"/>
+      <arg name="map_frame" value="$(arg namespace)/map"/>
+      <arg name="scan_topic" value="scan"/>
+      <arg name="scan_subscriber_queue_size" value="5"/>
+      <arg name="pub_map_odom_transform" value="$(arg slam_publish_map_tf)"/>
+      <arg name="tf_map_scanmatch_transform_frame_name" value="$(arg namespace)scanmatcher_frame"/>
+    </include>
+
+    <!-- EKF node 1 - Local - All continuous sensor data and algorithm outputs that aren't global pose estimates -->
+    <include if="$(arg use_ekf_local)" file="$(find got_node)/launch/robot_localization.launch">
+      <!-- Odom filtered using odom and imu (without GoT) -->
+
+      <arg name="world_frame" value="$(arg namespace)/odom"/>
+      <arg name="odom_topic" value="raw_odom"/>
+      <arg name="imu_topic" value="imu/data"/>
+
+      <arg name="publish_tf" value="true"/>
+      <arg name="use_got" value="false"/>
+      <arg name="use_slam" value="false"/>
+      <arg name="node_name" value="ekf_local_node"/> 
+
+      <arg name="base_link_frame" value="$(arg namespace)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg namespace)/odom"/>
+      <!-- <arg name="map_frame" value="$(arg first_tb3)/map"/> -->
+      <arg name="odometry_filtered_topic" value="odom_local"/>
+    </include>
+
+    <!-- EKF node 2 - Global - All continuous sensor data and algorithm outputs that aren't global pose estimates -->
+    <include if="$(arg use_ekf_global)" file="$(find got_node)/launch/robot_localization.launch">
+      <!-- Odom filtered using odom and imu (without GoT) -->
+
+      <arg name="world_frame" value="$(arg namespace)/map"/>
+      <arg name="odom_topic" value="odom_local"/>
+      <arg name="got_topic" value="$(arg got_topic)"/>
+      <arg name="imu_topic" value="imu/data"/>
+
+      <arg name="publish_tf" value="true"/>
+      <arg name="use_got" value="$(arg enable_ekf_got_pose)"/>
+      <arg name="use_slam" value="$(arg enable_ekf_slam_pose)"/>
+      <arg name="node_name" value="ekf_global_node"/> 
+
+      <arg name="base_link_frame" value="$(arg namespace)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg namespace)/odom"/>
+      <arg name="map_frame" value="$(arg namespace)/map"/>
+      <arg name="odometry_filtered_topic" value="odom"/>
+    </include>
+
+  </group>
+
+</launch>

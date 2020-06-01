@@ -1,0 +1,221 @@
+<launch>
+  <!-- Run rosbag_square_mb.bag prior to launchis this -->
+  <arg name="raw_ns" default="raw"/>
+  <arg name="fused_ns" default="fused"/>
+  <arg name="fused_got_raw_ns" default="fused_got_raw"/>
+  <arg name="fused_got_corr_ns" default="fused_got_corr"/>
+
+  
+  <node pkg="got_node" type="move_base_goal_publisher" name="mb_goal_position_publisher" output="screen"/>
+
+  <!-- Group raw - raw_odom- > SLAM -->
+  <group ns = "$(arg raw_ns)">
+    <node pkg="got_node" type="tf_broadcaster" name="raw_tf_broadcaster" output="screen">
+      <param name="namespace"  type="string" value="$(arg raw_ns)" />
+      <param name="publishOdomTF"  type="bool" value="true" />
+      <param name="publishOdomTopic"  type= "bool" value="true" />
+      <param name="writeToFile"  type= "bool" value="false" />
+    </node>
+
+    <!-- <node pkg="got_node" type="got_position_pi_master_noservice" name="got_position" output="screen">
+      <param name="namespace"  type="string" value="$(arg raw_ns)" />
+      <param name="got_ground_truth"  type="string" value="odom" />
+      <param name="pub_got_tf"  type= "bool" value="true" />
+      <param name="gotwriteToFile"  type="bool" value="false" />
+    </node> -->
+
+    <!-- Publish static transform of the laser. Define your sensor offset here -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_laser" args="0.065 0 0.098 0 0 0  $(arg raw_ns)/base_footprint $(arg raw_ns)/laser"/>
+    <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu_link" args="0 0 0 0 0 0  $(arg raw_ns)/base_footprint $(arg raw_ns)/imu_link"/> -->
+
+    <include file="$(find turtlebot3_slam)/launch/turtlebot3_hector.launch">
+      <arg name="odom_frame" value="$(arg raw_ns)/odom"/>
+      <arg name="base_frame" value="$(arg raw_ns)/base_footprint"/>
+      <arg name="map_frame" value="$(arg raw_ns)/map"/>
+      <arg name="scan_topic" value="scan"/>
+      <arg name="scan_subscriber_queue_size" value="5"/>
+      <arg name="pub_map_odom_transform" value="true"/>
+      <arg name="tf_map_scanmatch_transform_frame_name" value="$(arg raw_ns)scanmatcher_frame"/>
+    </include>
+  </group>
+
+  <!-- Group fused - raw_odom- > EKF -> SLAM -->
+  <group ns = "$(arg fused_ns)">
+    <node pkg="got_node" type="tf_broadcaster" name="fused_tf_broadcaster" output="screen">
+      <param name="namespace"  type="string" value="$(arg fused_ns)" />
+      <param name="publishOdomTF"  type="bool" value="false" />
+      <param name="publishOdomTopic"  type= "bool" value="true" />
+      <param name="writeToFile"  type= "bool" value="false" />
+    </node>
+
+    <!-- Publish static transform of the laser. Define your sensor offset here -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_laser" args="0.065 0 0.098 0 0 0  $(arg fused_ns)/base_footprint $(arg fused_ns)/laser"/>
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu_link" args="0 0 0 0 0 0  $(arg fused_ns)/base_footprint $(arg fused_ns)/imu_link"/>
+
+
+    <!-- EKF node 1 - Local - All continuous sensor data and algorithm outputs that aren't global pose estimates -->
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <!-- Odom filtered using odom and imu (without GoT) -->
+
+      <arg name="world_frame" value="$(arg fused_ns)/odom"/>
+      <arg name="odom_topic" value="raw_odom"/>
+      <arg name="imu_topic" value="imu/data"/>
+
+      <arg name="publish_tf" value="true"/>
+      <arg name="use_got" value="false"/>
+      <arg name="node_name" value="ekf_fused_node"/> 
+
+      <arg name="base_link_frame" value="$(arg fused_ns)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg fused_ns)/odom"/>
+      <!-- <arg name="map_frame" value="$(arg first_tb3)/map"/> -->
+      <arg name="odometry_filtered_topic" value="odom_local"/>
+    </include>
+  
+
+    <include file="$(find turtlebot3_slam)/launch/turtlebot3_hector.launch">
+      <arg name="odom_frame" value="$(arg fused_ns)/odom"/>
+      <arg name="base_frame" value="$(arg fused_ns)/base_footprint"/>
+      <arg name="map_frame" value="$(arg fused_ns)/map"/>
+      <arg name="scan_topic" value="scan"/>
+      <arg name="scan_subscriber_queue_size" value="5"/>
+      <arg name="pub_map_odom_transform" value="true"/>
+      <arg name="tf_map_scanmatch_transform_frame_name" value="$(arg fused_ns)/scanmatcher_frame"/>
+    </include>
+  </group>
+
+
+
+  <group ns = "$(arg fused_got_raw_ns)">
+    <node pkg="got_node" type="tf_broadcaster" name="fused_tf_broadcaster" output="screen">
+      <param name="namespace"  type="string" value="$(arg fused_got_raw_ns)" />
+      <param name="publishOdomTF"  type="bool" value="false" />
+      <param name="publishOdomTopic"  type= "bool" value="true" />
+      <param name="writeToFile"  type= "bool" value="false" />
+    </node>
+
+    <!-- Publish static transform of the laser. Define your sensor offset here -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_laser" args="0.065 0 0.098 0 0 0  $(arg fused_got_raw_ns)/base_footprint $(arg fused_got_raw_ns)/laser"/>
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu_link" args="0 0 0 0 0 0  $(arg fused_got_raw_ns)/base_footprint $(arg fused_got_raw_ns)/imu_link"/>
+
+
+    <!-- EKF node 1 - Local - All continuous sensor data and algorithm outputs that aren't global pose estimates -->
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <!-- Odom filtered using odom and imu (without GoT) -->
+
+      <arg name="world_frame" value="$(arg fused_got_raw_ns)/odom"/>
+      <arg name="odom_topic" value="raw_odom"/>
+      <arg name="imu_topic" value="imu/data"/>
+
+      <arg name="publish_tf" value="true"/>
+      <arg name="use_got" value="false"/>
+      <arg name="node_name" value="ekf_local_node"/> 
+
+      <arg name="base_link_frame" value="$(arg fused_got_raw_ns)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg fused_got_raw_ns)/odom"/>
+      <!-- <arg name="map_frame" value="$(arg first_tb3)/map"/> -->
+      <arg name="odometry_filtered_topic" value="odom_local"/>
+    </include>
+  
+
+    <!-- EKF node 2 - Global - All continuous sensor data and algorithm outputs that aren't global pose estimates -->
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <!-- Odom filtered using odom and imu (without GoT) -->
+
+      <arg name="world_frame" value="$(arg fused_got_raw_ns)/map"/>
+      <arg name="odom_topic" value="odom_local"/>
+      <arg name="got_topic" value="got_raw"/>
+      <arg name="imu_topic" value="imu/data"/>
+
+      <arg name="publish_tf" value="true"/>
+      <arg name="use_got" value="true"/>
+      <arg name="node_name" value="ekf_global_node"/> 
+
+      <arg name="base_link_frame" value="$(arg fused_got_raw_ns)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg fused_got_raw_ns)/odom"/>
+      <arg name="map_frame" value="$(arg fused_got_raw_ns)/map"/>
+      <arg name="odometry_filtered_topic" value="odom"/>
+    </include>
+
+    <include file="$(find turtlebot3_slam)/launch/turtlebot3_hector.launch">
+      <arg name="odom_frame" value="$(arg fused_got_raw_ns)/odom"/>
+      <arg name="base_frame" value="$(arg fused_got_raw_ns)/base_footprint"/>
+      <arg name="map_frame" value="$(arg fused_got_raw_ns)/map"/>
+      <arg name="scan_topic" value="scan"/>
+      <arg name="scan_subscriber_queue_size" value="5"/>
+      <arg name="pub_map_odom_transform" value="false"/>
+      <arg name="tf_map_scanmatch_transform_frame_name" value="$(arg fused_got_raw_ns)/scanmatcher_frame"/>
+    </include>
+  </group>
+
+
+  <group ns = "$(arg fused_got_corr_ns)">
+    <node pkg="got_node" type="tf_broadcaster" name="fused_tf_broadcaster" output="screen">
+      <param name="namespace"  type="string" value="$(arg fused_got_corr_ns)" />
+      <param name="publishOdomTF"  type="bool" value="false" />
+      <param name="publishOdomTopic"  type= "bool" value="true" />
+      <param name="writeToFile"  type= "bool" value="true" />
+    </node>
+
+    <node pkg="got_node" type="got_position_pi_master_noservice" name="got_position" output="screen">
+      <param name="namespace"  type="string" value="$(arg fused_got_corr_ns)" />
+      <param name="got_ground_truth"  type="string" value="odom" />
+      <param name="pub_got_tf"  type= "bool" value="true" />
+      <param name="gotwriteToFile"  type="bool" value="false" />
+    </node>
+
+    <!-- Publish static transform of the laser. Define your sensor offset here -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_laser" args="0.065 0 0.098 0 0 0  $(arg fused_got_corr_ns)/base_footprint $(arg fused_got_corr_ns)/laser"/>
+    <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu_link" args="0 0 0 0 0 0  $(arg fused_got_corr_ns)/base_footprint $(arg fused_got_corr_ns)/imu_link"/>
+
+
+    <!-- EKF node 1 - Local - All continuous sensor data and algorithm outputs that aren't global pose estimates -->
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <!-- Odom filtered using odom and imu (without GoT) -->
+
+      <arg name="world_frame" value="$(arg fused_got_corr_ns)/odom"/>
+      <arg name="odom_topic" value="raw_odom"/>
+      <arg name="imu_topic" value="imu/data"/>
+
+      <arg name="publish_tf" value="true"/>
+      <arg name="use_got" value="false"/>
+      <arg name="node_name" value="ekf_local_node"/> 
+
+      <arg name="base_link_frame" value="$(arg fused_got_corr_ns)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg fused_got_corr_ns)/odom"/>
+      <!-- <arg name="map_frame" value="$(arg first_tb3)/map"/> -->
+      <arg name="odometry_filtered_topic" value="odom_local"/>
+    </include>
+  
+
+    <!-- EKF node 2 - Global - All continuous sensor data and algorithm outputs that aren't global pose estimates -->
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <!-- Odom filtered using odom and imu (without GoT) -->
+
+      <arg name="world_frame" value="$(arg fused_got_corr_ns)/map"/>
+      <arg name="odom_topic" value="odom_local"/>
+      <arg name="got_topic" value="got_pose_corrected_v2"/>
+      <arg name="imu_topic" value="imu/data"/>
+
+      <arg name="publish_tf" value="true"/>
+      <arg name="use_got" value="true"/>
+      <arg name="node_name" value="ekf_global_node"/> 
+
+      <arg name="base_link_frame" value="$(arg fused_got_corr_ns)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg fused_got_corr_ns)/odom"/>
+      <arg name="map_frame" value="$(arg fused_got_corr_ns)/map"/>
+      <arg name="odometry_filtered_topic" value="odom"/>
+    </include>
+
+    <include file="$(find turtlebot3_slam)/launch/turtlebot3_hector.launch">
+      <arg name="odom_frame" value="$(arg fused_got_corr_ns)/odom"/>
+      <arg name="base_frame" value="$(arg fused_got_corr_ns)/base_footprint"/>
+      <arg name="map_frame" value="$(arg fused_got_corr_ns)/map"/>
+      <arg name="scan_topic" value="scan"/>
+      <arg name="scan_subscriber_queue_size" value="5"/>
+      <arg name="pub_map_odom_transform" value="false"/>
+      <arg name="tf_map_scanmatch_transform_frame_name" value="$(arg fused_got_corr_ns)/scanmatcher_frame"/>
+    </include>
+
+  </group>
+
+</launch>

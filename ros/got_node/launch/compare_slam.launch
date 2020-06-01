@@ -1,0 +1,121 @@
+<launch>
+  <!-- Run rosbag_square_mb.bag prior to launchis this -->
+
+  <node pkg="got_node" type="move_base_goal_publisher" name="mb_goal_position_publisher" output="screen"/>
+
+  <!-- Raw node -->
+  <include file="$(find got_node)/launch/rosbag_test.launch">
+    <arg name="namespace" value="raw"/>
+    <arg name="write_to_file" value="false"/>
+
+    <arg name="br_publish_odom_topic" value="true"/>
+    
+    <arg name="br_publish_odom_tf" value="true"/>
+    <arg name="use_ekf_local" value="false"/>
+  
+    <arg name="slam_publish_map_tf" value="true"/>
+    <arg name="use_ekf_global" value="false"/>
+  
+    <!-- <arg name="got_topic" value="got_raw"/> -->
+    <!-- <arg name="enable_ekf_got_pose" value="false"/>
+    <arg name="enable_ekf_slam_pose" value="false"/> -->
+  </include>
+
+  <!-- Local node -->
+  <include file="$(find got_node)/launch/rosbag_test.launch">
+    <arg name="namespace" value="fused"/>
+    <arg name="write_to_file" value="false"/>
+
+    <arg name="br_publish_odom_topic" value="true"/>
+    
+    <arg name="br_publish_odom_tf" value="false"/>
+    <arg name="use_ekf_local" value="true"/>
+  
+    <arg name="slam_publish_map_tf" value="false"/>
+    <arg name="use_ekf_global" value="true"/>
+
+    <arg name="enable_fused_slam_est" value="true"/>
+  
+    <!-- <arg name="got_topic" value="got_raw"/> -->
+    <arg name="enable_ekf_got_pose" value="false"/>
+    <arg name="enable_ekf_slam_pose" value="true"/>
+    
+  </include>
+
+  <!-- Global node + got_raw -->
+  <include file="$(find got_node)/launch/rosbag_test.launch">
+    <arg name="namespace" value="fused_got_raw"/>
+    <arg name="write_to_file" value="false"/>
+
+    <arg name="br_publish_odom_topic" value="true"/>
+    
+    <arg name="br_publish_odom_tf" value="false"/>
+    <arg name="use_ekf_local" value="true"/>
+  
+    <arg name="slam_publish_map_tf" value="false"/>
+    <arg name="use_ekf_global" value="true"/>
+  
+    <arg name="got_topic" value="got_raw"/>
+    <arg name="enable_ekf_got_pose" value="true"/>
+    <arg name="enable_ekf_slam_pose" value="false"/>
+  </include>
+
+  <!-- Global node + got_corrected -->
+  <include file="$(find got_node)/launch/rosbag_test.launch">
+    <arg name="namespace" value="fused_got_corr"/>
+    <arg name="write_to_file" value="false"/>
+
+    <arg name="br_publish_odom_topic" value="true"/>
+    
+    <arg name="br_publish_odom_tf" value="false"/>
+    <arg name="use_ekf_local" value="true"/>
+  
+    <arg name="slam_publish_map_tf" value="false"/>
+    <arg name="use_ekf_global" value="true"/>
+  
+    <arg name="use_got_position_node" value="true"/>
+
+    <arg name="got_topic" value="got_pose_corrected_v2"/>
+    <arg name="enable_ekf_got_pose" value="true"/>
+    <arg name="enable_ekf_slam_pose" value="false"/>
+  </include>
+
+  <!-- Global node + got_raw + SLAM-->
+  <include file="$(find got_node)/launch/rosbag_test.launch">
+    <arg name="namespace" value="fused_got_raw_slam"/>
+    <arg name="write_to_file" value="false"/>
+
+    <arg name="br_publish_odom_topic" value="true"/>
+    
+    <arg name="br_publish_odom_tf" value="false"/>
+    <arg name="use_ekf_local" value="true"/>
+  
+    <arg name="slam_publish_map_tf" value="false"/>
+    <arg name="use_ekf_global" value="true"/>
+  
+    <arg name="got_topic" value="got_raw"/>
+    <arg name="enable_ekf_got_pose" value="true"/>
+    <arg name="enable_ekf_slam_pose" value="true"/>
+  </include>
+
+  <!-- Global node + got_corrected + SLAM-->
+  <include file="$(find got_node)/launch/rosbag_test.launch">
+    <arg name="namespace" value="fused_got_corr_slam"/>
+    <arg name="write_to_file" value="true"/>
+
+    <arg name="br_publish_odom_topic" value="true"/>
+    
+    <arg name="br_publish_odom_tf" value="false"/>
+    <arg name="use_ekf_local" value="true"/>
+  
+    <arg name="slam_publish_map_tf" value="false"/>
+    <arg name="use_ekf_global" value="true"/>
+  
+    <arg name="use_got_position_node" value="true"/>
+
+    <arg name="got_topic" value="got_pose_corrected_v2"/>
+    <arg name="enable_ekf_got_pose" value="true"/>
+    <arg name="enable_ekf_slam_pose" value="true"/>
+  </include>
+
+</launch>

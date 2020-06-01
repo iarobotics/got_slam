@@ -1,0 +1,315 @@
+/* ROS node that aims to simulate GoT position
+*
+* - Define 5 beacon positions
+* - Gazebo plugin publishes e.g. robot1/ground_truth as nav_msgs/Odometry
+ - Calculate distance from each beacon to robot
+ - Add noise by reportinf e.g once beacon distance * 1.1
+ - Get x,y,z position estimate
+ - Publish position estimate to got_pose as geometry:msgs/PoseWithCovarianceStamped
+*/
+
+#include <ros/ros.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <nav_msgs/Odometry.h>
+//#include <tf/transform_datatypes.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <bits/stdc++.h>
+
+#include <fstream>
+#include <iostream>
+
+#define NUM_BEACONS 5
+#define ERROR_CORRECTION
+//#define WRITE_TO_FILE
+// int beacon_locations[NUM_BEACONS][3] = { {-5,-5,5}, {5,-5,5}, {0,0,5}, {-5,5,5}, {5,5,5}};
+// double x_est=0, y_est=0, z_est=0;
+
+
+class TeleopTurtle
+{
+public:
+  TeleopTurtle();
+
+private:
+  void odomCallback(const nav_msgs::Odometry::ConstPtr& msg);
+  
+  ros::NodeHandle nh_;
+
+  ros::Publisher odom_pub_;
+  ros::Publisher odom_pub2_;
+  ros::Publisher odom_pub3_;
+  ros::Publisher odom_pub4_;
+  
+  ros::Subscriber odom_sub_;
+  
+
+  // ros::Subscriber err_cmd_sub_;
+
+  // std::default_random_engine random_generator_;
+  // std::normal_distribution<double> random_distribution_x_;
+  // std::normal_distribution<double> random_distribution_y_;
+  // std::normal_distribution<double> random_distribution_yaw_;
+  unsigned frame_sequence_;
+
+  double got_x_=0, got_y_=0, got_z_=0;
+  //const double beacon_locations_[NUM_BEACONS][3] = { {-5,-5,5}, {5,-5,5}, {0,0,5}, {-5,5,5}, {5,5,5}};
+
+  const double beacon_locations_[NUM_BEACONS][3] = { {-2,4,5}, {-2,-4,5}, {2,0,5}, {6,4,5}, {6,-4,5}};
+
+  double err_x_ = 0;
+  double err_y_ = 0;
+
+  double err_s_ = 19;
+  double err_tolerance_ = 0; // 10 cm
+  
+};
+
+
+TeleopTurtle::TeleopTurtle()
+{
+  odom_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("got_pose", 1);
+  odom_pub2_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("got_pose2", 1);
+  odom_pub3_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("got_pose3", 1);
+  odom_pub4_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("got_actual", 1);
+
+  odom_sub_ = nh_.subscribe<nav_msgs::Odometry>("ground_truth", 10, &TeleopTurtle::odomCallback, this);
+  // err_cmd_sub_ = nh_.subscribe<geometry_msgs::Point>("got_err_tolerance", 10, &TeleopTurtle::errorCallback, this);
+
+  nh_.setParam("got_err_tolerance", err_tolerance_);
+  nh_.setParam("got_err_s", err_s_);
+}
+
+// void TeleopTurtle::errorCallback(const geometry_msgs::Point::ConstPtr& msg)
+// {
+//   err_s_ = msg->x;
+//   err_tolerance_ = msg->y;
+// }
+
+void TeleopTurtle::odomCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+  double ground_x = msg->pose.pose.position.x;
+  double ground_y = msg->pose.pose.position.y;
+  double ground_z = msg->pose.pose.position.y;
+
+  //Calculate distance from each beacon to the robot
+  for(uint8_t index = 0; index < NUM_BEACONS; index++)
+  {
+      // // Actual distance in meters from beacon to robot
+      // double distance = pow(beacon_locations_[index][0] - msg->pose.pose.position.x, 2);
+      // distance += pow(beacon_locations_[index][1] - msg->pose.pose.position.y, 2);
+      // distance += pow(beacon_locations_[index][2] - msg->pose.pose.position.z, 2);
+      // distance = sqrt(distance);
+
+      // Actual distance in meters from beacon to robot
+      double distance = pow(beacon_locations_[index][0] - ground_x, 2);
+      distance += pow(beacon_locations_[index][1] - ground_y, 2);
+      distance += pow(beacon_locations_[index][2] - ground_z, 2);
+      distance = sqrt(distance);
+
+      // Insert distance error for lowerleft beacon
+      if (index == 0)
+      {
+        distance *= 1.1;
+      }
+
+      if(distance>10 || distance<1)
+          continue;
+
+      double dp=pow(got_x_- beacon_locations_[index][0], 2);
+      dp+=pow(got_y_- beacon_locations_[index][1], 2);
+      dp+=pow(got_z_- beacon_locations_[index][2], 2);
+      dp=sqrt(dp);
+
+      // Normalizing factor
+      double lambda = 1 - dp / distance;
+      //ROS_INFO("Lambda: %f", lambda);
+
+      // Estimated Cartesian coordinates
+      got_x_=got_x_/(1-lambda)-beacon_locations_[index][0]*lambda/(1-lambda);
+      got_y_=got_y_/(1-lambda)-beacon_locations_[index][1]*lambda/(1-lambda);
+      got_z_=got_z_/(1-lambda)-beacon_locations_[index][2]*lambda/(1-lambda);
+      //ROS_INFO("Position: %d, %f, %f, %f;", index, x_est, y_est, z_est);
+  }
+
+  #ifdef ERROR_CORRECTION
+    // e_i * exp( (-|X-X_i|^2) / s )
+
+    nh_.getParam("got_err_tolerance", err_tolerance_); // Error tolerance parameter, defaults to 0
+    nh_.getParam("got_err_s", err_s_); // Error tolerance parameter, defaults to 0
+
+    err_x_ = ground_x - got_x_;
+    err_y_ = ground_y - got_y_;
+    ROS_INFO("ERROR x:%f y:%f",fabs(err_x_), fabs(err_y_));
+    ROS_INFO("Tolerance: %f, s: %f",err_tolerance_, err_s_);
+
+
+    #ifdef WRITE_TO_FILE
+      std::ofstream myfile;
+      myfile.open ("/home/isircu/err_log.csv", std::ios::out | std::ios::app);
+      myfile << err_x_ << ',' << err_y_ << '\n';
+      myfile.close();
+    #endif
+
+    // if (fabs(err_x_) > err_tolerance_)
+    // {
+    //   err_x_ = fabs(err_x_);
+    //   err_x_ = pow(err_x_, 2);
+    //   err_x_ = err_x_ / err_s_;
+    //   err_x_ = err_x_ * exp(-err_x_);
+    // } else
+    // {
+    //   err_x_ = 0;
+    // }
+    
+    // if (fabs(err_y_) > err_tolerance_)
+    // {
+    //   err_y_ = fabs(err_y_);
+    //   err_y_ = pow(err_y_, 2);
+    //   err_y_ = err_y_ / err_s_;
+    //   err_y_ = err_y_ * exp(-err_y_);
+    // } else
+    // {
+    //   err_y_ = 0;
+    // }
+  //ROS_INFO("ERROR2 x:%f y:%f",fabs(err_x_), fabs(err_y_));
+  #endif
+
+  // err_s_ = 1;
+  // err_x_ = ground_x - got_x_;
+  // err_y_ = ground_y - got_y_;
+  // err_x_ = fabs(err_x_);
+  // err_x_ = pow(err_x_, 2);
+  // err_x_ = err_x_ / err_s_;
+  // err_x_ = err_x_ * exp(-err_x_);
+
+  // err_y_ = fabs(err_y_);
+  // err_y_ = pow(err_y_, 2);
+  // err_y_ = err_y_ / err_s_;
+  // err_y_ = err_y_ * exp(-err_y_);
+
+  //err_s_ = 1;
+  double dx = ground_x - got_x_;
+  double dy = ground_y - got_y_;
+
+  err_x_ = -(pow(dx,2)) - (pow(dy,2));
+  err_x_ = dx * exp(err_x_ / err_s_);
+
+  err_y_ = -(pow(dx,2)) - (pow(dy,2));
+  err_y_ = dy * exp(err_y_ / err_s_);
+
+
+  geometry_msgs::PoseWithCovarianceStamped current_pose;
+  tf2::Quaternion quat;
+  quat.setRPY(0,0,0);
+
+  current_pose.header.seq = ++ frame_sequence_;
+  current_pose.header.stamp = ros::Time::now();
+  current_pose.header.frame_id = "odom";
+
+  // current_pose.pose.pose.position.x = msg->pose.pose.position.x;
+  // current_pose.pose.pose.position.y = msg->pose.pose.position.y;
+  // current_pose.pose.pose.position.z = msg->pose.pose.position.z;
+
+  current_pose.pose.pose.position.x = got_x_ + err_x_;
+  current_pose.pose.pose.position.y = got_y_ + err_y_;
+  current_pose.pose.pose.position.z = got_z_;
+
+  current_pose.pose.pose.orientation.x = quat.x();
+  current_pose.pose.pose.orientation.y = quat.y();
+  current_pose.pose.pose.orientation.z = quat.z();
+  current_pose.pose.pose.orientation.w = quat.w();
+
+  current_pose.pose.covariance[0] = 0.001;
+  current_pose.pose.covariance[7] = 0.001;
+  current_pose.pose.covariance[35] = 0.001;
+  // current_pose.pose.covariance = msg->pose.covariance;
+
+
+  err_s_ = 0.5;
+  err_x_ = -(pow(dx,2)) - (pow(dy,2));
+  err_x_ = dx * exp(err_x_ / err_s_);
+
+  err_y_ = -(pow(dx,2)) - (pow(dy,2));
+  err_y_ = dy * exp(err_y_ / err_s_);
+
+  geometry_msgs::PoseWithCovarianceStamped current_pose2;
+
+  current_pose2.header.seq = current_pose.header.seq;
+  current_pose2.header.stamp = current_pose.header.stamp;
+  current_pose2.header.frame_id = "odom";
+
+  current_pose2.pose.pose.position.x = got_x_ + err_x_;
+  current_pose2.pose.pose.position.y = got_y_ + err_y_;
+  current_pose2.pose.pose.position.z = got_z_;
+
+  current_pose2.pose.pose.orientation.x = quat.x();
+  current_pose2.pose.pose.orientation.y = quat.y();
+  current_pose2.pose.pose.orientation.z = quat.z();
+  current_pose2.pose.pose.orientation.w = quat.w();
+
+  current_pose2.pose.covariance[0] = 0.001;
+  current_pose2.pose.covariance[7] = 0.001;
+  current_pose2.pose.covariance[35] = 0.001;
+
+
+  err_s_ = 400;
+  err_x_ = -(pow(dx,2)) - (pow(dy,2));
+  err_x_ = dx * exp(err_x_ / err_s_);
+
+  err_y_ = -(pow(dx,2)) - (pow(dy,2));
+  err_y_ = dy * exp(err_y_ / err_s_);
+
+  geometry_msgs::PoseWithCovarianceStamped current_pose3;
+  current_pose3.header.seq = current_pose.header.seq;
+  current_pose3.header.stamp = current_pose.header.stamp;
+  current_pose3.header.frame_id = "odom";
+
+  current_pose3.pose.pose.position.x = got_x_ + err_x_;
+  current_pose3.pose.pose.position.y = got_y_ + err_y_;
+  current_pose3.pose.pose.position.z = got_z_;
+
+  current_pose3.pose.pose.orientation.x = quat.x();
+  current_pose3.pose.pose.orientation.y = quat.y();
+  current_pose3.pose.pose.orientation.z = quat.z();
+  current_pose3.pose.pose.orientation.w = quat.w();
+
+  current_pose3.pose.covariance[0] = 0.001;
+  current_pose3.pose.covariance[7] = 0.001;
+  current_pose3.pose.covariance[35] = 0.001;
+
+  err_x_ = 0;
+  err_y_ = 0;
+
+  geometry_msgs::PoseWithCovarianceStamped current_pose4;
+  current_pose4.header.seq = current_pose.header.seq;
+  current_pose4.header.stamp = current_pose.header.stamp;
+  current_pose4.header.frame_id = "odom";
+
+  current_pose4.pose.pose.position.x = got_x_ + err_x_;
+  current_pose4.pose.pose.position.y = got_y_ + err_y_;
+  current_pose4.pose.pose.position.z = got_z_;
+
+  current_pose4.pose.pose.orientation.x = quat.x();
+  current_pose4.pose.pose.orientation.y = quat.y();
+  current_pose4.pose.pose.orientation.z = quat.z();
+  current_pose4.pose.pose.orientation.w = quat.w();
+
+  current_pose4.pose.covariance[0] = 0.001;
+  current_pose4.pose.covariance[7] = 0.001;
+  current_pose4.pose.covariance[35] = 0.001;
+
+  odom_pub_.publish(current_pose);
+  odom_pub2_.publish(current_pose2);
+  odom_pub3_.publish(current_pose3);
+  odom_pub4_.publish(current_pose4);
+  
+}
+
+
+int main(int argc, char** argv)
+{
+  ros::init(argc, argv, "got_position_node");
+  TeleopTurtle teleop_turtle;
+
+  ros::spin();
+}

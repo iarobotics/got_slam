@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   tf
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -54,11 +55,11 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  AddTwoInts.srv
+  GetPosError.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -68,10 +69,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -204,8 +205,6 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-add_executable(tf_broadcaster src/tf_broadcaster.cpp)
-target_link_libraries(tf_broadcaster ${catkin_LIBRARIES})
 
 add_executable(tf_listener src/tf_listener.cpp)
 target_link_libraries(tf_listener ${catkin_LIBRARIES})
@@ -225,8 +224,38 @@ target_link_libraries(send_waypoints ${catkin_LIBRARIES})
 add_executable(move_base_goal_publisher src/move_base_goal_publisher.cpp)
 target_link_libraries(move_base_goal_publisher ${catkin_LIBRARIES})
 
-add_executable(got_position_pi src/got_position_pi.cpp)
-target_link_libraries(got_position_pi ${catkin_LIBRARIES})
+add_executable(got_position_pi_master src/got_position_pi_master.cpp)
+target_link_libraries(got_position_pi_master ${catkin_LIBRARIES})
+
+add_executable(got_position_sim src/got_position_sim.cpp)
+target_link_libraries(got_position_sim ${catkin_LIBRARIES})
 
 add_executable(map_test src/map_test.cpp)
 target_link_libraries(map_test ${catkin_LIBRARIES})     
+
+add_executable(add_two_ints_client src/add_two_ints_client.cpp)
+target_link_libraries(add_two_ints_client ${catkin_LIBRARIES})
+
+add_executable(get_pos_error_client src/get_pos_error_client.cpp)
+target_link_libraries(get_pos_error_client ${catkin_LIBRARIES})
+
+add_executable(got_position_pi_client src/got_position_pi_client.cpp)
+target_link_libraries(got_position_pi_client ${catkin_LIBRARIES})
+
+add_executable(got_position_sim_client src/got_position_sim_client.cpp)
+target_link_libraries(got_position_sim_client ${catkin_LIBRARIES})
+
+add_executable(drive src/drive.cpp)
+target_link_libraries(drive ${catkin_LIBRARIES})
+
+add_executable(tf_broadcaster_raw src/tf_broadcaster_raw.cpp)
+target_link_libraries(tf_broadcaster_raw ${catkin_LIBRARIES})
+
+add_executable(tf_broadcaster_local src/tf_broadcaster_local.cpp)
+target_link_libraries(tf_broadcaster_local ${catkin_LIBRARIES})
+
+add_executable(tf_broadcaster src/tf_broadcaster.cpp)
+target_link_libraries(tf_broadcaster ${catkin_LIBRARIES})
+
+add_executable(got_position_pi_master_noservice src/got_position_pi_master_noservice.cpp)
+target_link_libraries(got_position_pi_master_noservice ${catkin_LIBRARIES})
