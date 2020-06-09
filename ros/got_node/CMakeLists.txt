@@ -242,9 +242,6 @@ target_link_libraries(get_pos_error_client ${catkin_LIBRARIES})
 add_executable(got_position_pi_client src/got_position_pi_client.cpp)
 target_link_libraries(got_position_pi_client ${catkin_LIBRARIES})
 
-add_executable(got_position_sim_client src/got_position_sim_client.cpp)
-target_link_libraries(got_position_sim_client ${catkin_LIBRARIES})
-
 add_executable(drive src/drive.cpp)
 target_link_libraries(drive ${catkin_LIBRARIES})
 
@@ -259,3 +256,9 @@ target_link_libraries(tf_broadcaster ${catkin_LIBRARIES})
 
 add_executable(got_position_pi_master_noservice src/got_position_pi_master_noservice.cpp)
 target_link_libraries(got_position_pi_master_noservice ${catkin_LIBRARIES})
+
+add_executable(got_position_sim_master src/got_position_sim_master.cpp)
+target_link_libraries(got_position_sim_master ${catkin_LIBRARIES})
+
+add_executable(got_position_sim_client src/got_position_sim_client.cpp)
+target_link_libraries(got_position_sim_client ${catkin_LIBRARIES})

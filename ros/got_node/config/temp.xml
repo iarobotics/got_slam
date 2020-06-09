@@ -1,17 +1,16 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <root version="2.3.8">
  <tabbed_widget name="Main Window" parent="main_window">
-  <plotmatrix rows="1" columns="1" tab_name="plot">
-   <plot row="0" style="Lines" col="0">
-    <range right="99.917876" top="5.364374" bottom="-2.979181" left="0.000000"/>
+  <plotmatrix tab_name="plot" columns="1" rows="1">
+   <plot col="0" style="Lines" row="0">
+    <range right="346.420000" top="8.437891" left="246.410000" bottom="-1.004226"/>
     <limitY/>
-    <curve custom_transform="noTransform" R="31" name="/fused/slam_out_pose/position/x" G="119" B="180"/>
-    <curve custom_transform="noTransform" R="214" name="/fused_got_corr/slam_out_pose/position/x" G="39" B="40"/>
-    <curve custom_transform="noTransform" R="26" name="/fused_got_corr_slam/slam_out_pose/position/x" G="201" B="56"/>
-    <curve custom_transform="noTransform" R="255" name="/fused_got_raw/slam_out_pose/position/x" G="127" B="14"/>
-    <curve custom_transform="noTransform" R="241" name="/fused_got_raw_slam/slam_out_pose/position/x" G="76" B="193"/>
-    <curve custom_transform="noTransform" R="148" name="/raw/slam_out_pose/position/x" G="103" B="189"/>
-    <curve custom_transform="noTransform" R="23" name="/slam_out_pose/position/x" G="190" B="207"/>
+    <curve custom_transform="noTransform" name="/client1/got_corr/pose/pose/position/x" G="119" R="31" B="180"/>
+    <curve custom_transform="noTransform" name="/client1/ground_truth/pose/position/x" G="39" R="214" B="40"/>
+    <curve custom_transform="noTransform" name="/client2/got_corr/pose/pose/position/x" G="201" R="26" B="56"/>
+    <curve custom_transform="noTransform" name="/client2/ground_truth/pose/position/x" G="127" R="255" B="14"/>
+    <curve custom_transform="noTransform" name="/master/got_corr/pose/pose/position/x" G="76" R="241" B="193"/>
+    <curve custom_transform="noTransform" name="/master/ground_truth/pose/position/x" G="103" R="148" B="189"/>
     <transform value="noTransform"/>
    </plot>
   </plotmatrix>

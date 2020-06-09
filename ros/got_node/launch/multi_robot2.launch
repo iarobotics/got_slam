@@ -1,0 +1,220 @@
+<launch>
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)" doc="model type [burger, waffle, waffle_pi]"/>
+  <arg name="first_tb3"  default="robot1"/>
+  <arg name="second_tb3" default="robot2"/>
+  <arg name="third_tb3"  default="robot3"/>
+
+  <arg name="first_tb3_x_pos" default="0.0"/>
+  <arg name="first_tb3_y_pos" default="0.0"/>
+  <arg name="first_tb3_z_pos" default="0.0"/>
+  <arg name="first_tb3_yaw"   default="0.0"/>
+
+  <arg name="second_tb3_x_pos" default=" -1.0"/>
+  <arg name="second_tb3_y_pos" default=" 0.0"/>
+  <arg name="second_tb3_z_pos" default=" 0.0"/>
+  <arg name="second_tb3_yaw"   default=" 0.0"/>
+
+  <arg name="third_tb3_x_pos" default=" 0.0"/>
+  <arg name="third_tb3_y_pos" default=" 3.0"/>
+  <arg name="third_tb3_z_pos" default=" 0.0"/>
+  <arg name="third_tb3_yaw"   default=" 1.57"/>
+
+  <arg name="spawn_first"   default="true"/>
+  <arg name="spawn_second"   default="true"/>
+  <arg name="spawn_third"   default="false"/>
+
+  <arg name="use_plotter"   default="false"/>
+
+  <arg name="use_robot_localization" default="true" />
+
+  <arg name="separate_from_namespece" default="false" />
+  <arg name="use_gtp" default="false" />
+
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <!-- <arg name="world_name" value="$(find turtlebot3_gazebo)/worlds/turtlebot3_house.world"/> -->
+    <arg name="world_name" value="$(find got_node)/worlds/maze_bug3.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+    <arg name="headless" value="false"/>
+    <arg name="debug" value="false"/>
+  </include>  
+
+  <group if="$(arg spawn_first)" ns = "$(arg first_tb3)">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="$(arg first_tb3)" />
+    </node>
+    
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model $(arg first_tb3) -x $(arg first_tb3_x_pos) -y $(arg first_tb3_y_pos) -z $(arg first_tb3_z_pos) -Y $(arg first_tb3_yaw) -param robot_description" />
+
+    <!-- EKF node 1 - Local - All continuous sensor data and algorithm outputs that aren't global pose estimates -->
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <!-- Odom filtered using odom and imu (without GoT) -->
+
+      <arg name="world_frame" value="$(arg first_tb3)/odom"/>
+      <arg name="odom_topic" value="odom"/>
+
+      <arg name="publish_tf" value="true"/>
+      <arg name="use_got" value="false"/>
+      <arg name="node_name" value="ekf_local_node"/> 
+
+      <arg name="base_link_frame" value="$(arg first_tb3)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg first_tb3)/odom"/>
+      <arg name="map_frame" value="$(arg first_tb3)/map"/>
+      <arg name="odometry_filtered_topic" value="odom_local_filtered"/>
+    </include>
+
+    <!-- EKF node 2 - Global - All continuous sensor data and algorithm outputs that aren't global pose estimates -->
+    <include file="$(find got_node)/launch/robot_localization.launch">
+
+      <arg name="world_frame" value="$(arg first_tb3)/map"/>
+      <arg name="odom_topic" value="odom_local_filtered"/>
+      <arg name="use_got_threshold" value="true"/>
+
+      <arg name="publish_tf" value="true"/>
+      <arg name="use_got" value="true"/>
+      <arg name="node_name" value="ekf_global_got_node"/> 
+
+      <arg name="base_link_frame" value="$(arg first_tb3)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg first_tb3)/odom"/>
+      <arg name="got_topic" value="got_pose_corrected"/>
+      <arg name="map_frame" value="$(arg first_tb3)/map"/>
+      <arg name="odometry_filtered_topic" value="odom_global_got_filtered"/>
+    </include>
+
+    <!-- EKF node 3 - Global - All continuous sensor data and algorithm outputs that aren't global pose estimates -->
+    <!-- <include file="$(find got_node)/launch/robot_localization.launch">
+
+      <arg name="world_frame" value="$(arg first_tb3)/map"/>
+      <arg name="odom_topic" value="odom_local_filtered"/>
+      <arg name="use_got_threshold" value="false"/>
+
+      <arg name="publish_tf" value="false"/>
+      <arg name="use_got" value="true"/>
+      <arg name="node_name" value="ekf_global_got_raw_node"/>
+
+      <arg name="base_link_frame" value="$(arg first_tb3)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg first_tb3)/odom"/>
+      <arg name="got_topic" value="got_pose"/>
+      <arg name="map_frame" value="map"/>
+      <arg name="odometry_filtered_topic" value="odom_global_got_raw_filtered"/>
+    </include> -->
+
+    <include file="$(find turtlebot3_slam)/launch/turtlebot3_hector.launch">
+      <arg name="model" value="$(arg model)"/>
+      <!-- <arg name="configuration_basename" value="turtlebot3_lds_2d.lua"/> -->
+      <arg name="odom_frame" value="$(arg first_tb3)/odom"/>
+      <arg name="base_frame" value="$(arg first_tb3)/base_footprint"/>
+      <arg name="map_frame" value="$(arg first_tb3)/map"/>
+      <arg name="scan_subscriber_queue_size" value="5"/>
+      <!-- <arg name="scan_topic" default="$(arg first_tb3)/scan"/> -->
+      <!-- <arg name="map_size" default="2048"/> -->
+      <arg name="pub_map_odom_transform" value="false"/>
+      <!-- <arg name="tf_map_scanmatch_transform_frame_name" default="scanmatcher_frame"/> -->
+    </include>
+
+    <node if="$(arg use_gtp)" pkg="got_node" type="go_to_point.py" name="gtp_node" output="screen"/>
+    
+    <node pkg="got_node" type="got_position_sim" name="got_node" output="screen"/>
+
+  </group>
+
+  <!-- ROBOT 2 -->
+  <group if="$(arg spawn_second)" ns = "$(arg second_tb3)">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="$(arg second_tb3)" />
+    </node>
+
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model $(arg second_tb3) -x $(arg second_tb3_x_pos) -y $(arg second_tb3_y_pos) -z $(arg second_tb3_z_pos) -Y $(arg second_tb3_yaw) -param robot_description" />
+
+    <!-- EKF node 1 - Local - All continuous sensor data and algorithm outputs that aren't global pose estimates -->
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <!-- Odom filtered using odom and imu (without GoT) -->
+
+      <arg name="world_frame" value="$(arg second_tb3)/odom"/>
+      <arg name="odom_topic" value="odom"/>
+
+      <arg name="publish_tf" value="true"/>
+      <arg name="use_got" value="false"/>
+      <arg name="node_name" value="ekf_local_node"/> 
+
+      <arg name="base_link_frame" value="$(arg second_tb3)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg second_tb3)/odom"/>
+      <arg name="map_frame" value="$(arg first_tb3)/map"/>
+      <arg name="odometry_filtered_topic" value="odom_local_filtered"/>
+    </include>
+
+    <!-- EKF node 2 - Global - All continuous sensor data and algorithm outputs that aren't global pose estimates -->
+    <include file="$(find got_node)/launch/robot_localization.launch">
+
+      <arg name="world_frame" value="$(arg first_tb3)/map"/>
+      <arg name="odom_topic" value="odom_local_filtered"/>
+      <arg name="use_got_threshold" value="true"/>
+
+      <arg name="publish_tf" value="true"/>
+      <arg name="use_got" value="true"/>
+      <arg name="node_name" value="ekf_global_got_node"/> 
+
+      <arg name="base_link_frame" value="$(arg second_tb3)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg second_tb3)/odom"/>
+      <arg name="got_topic" value="got_pose_corrected"/>
+      <arg name="map_frame" value="$(arg first_tb3)/map"/>
+      <arg name="odometry_filtered_topic" value="odom_global_got_filtered"/>
+    </include>
+
+    <!-- <node if="$(arg use_gtp)" pkg="got_node" type="go_to_point.py" name="gtp_node" output="screen"/> -->
+    <node pkg="got_node" type="got_position_sim_client" name="got_node" output="screen"/>
+  </group>
+
+  <group if="$(arg spawn_third)"  ns = "$(arg third_tb3)">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="$(arg third_tb3)" />
+    </node>
+
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model $(arg third_tb3) -x $(arg third_tb3_x_pos) -y $(arg third_tb3_y_pos) -z $(arg third_tb3_z_pos) -Y $(arg third_tb3_yaw) -param robot_description" />
+
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <!-- Meanwhile it's broken to listen to odom_noisy since got_position3 is broken and not publishing -->
+
+      <!-- <arg name="x_init" default="2.0"/> -->
+      <!-- <arg name="y_init" default="-4.0"/> -->
+      <!-- <arg name="z_init" default="0.0"/> -->
+      <!-- <arg name="yaw_init" default="3.14"/> -->
+
+      <!-- <arg name="odom_topic" value="$(arg third_tb3)/odom"/> -->
+      <!-- <arg name="got_topic" default="got_pose"/> -->
+      <!-- <arg name="imu_topic" value="$(arg third_tb3)/imu"/> -->
+      <arg name="base_link_frame" value="$(arg third_tb3)/base_footprint"/>
+      <!-- <arg name="map_frame" value="map"/> -->
+      <arg name="odom_frame" value="$(arg third_tb3)/odom"/>
+      <!-- <arg name="odometry_filtered_topic" value="$(arg third_tb3)/odom_filtered"/> -->
+      <!-- <arg name="node_name" value="$(arg third_tb3)_ekf"/> -->
+    </include>
+
+    <node if="$(arg use_gtp)" pkg="got_node" type="go_to_point.py" name="gtp_node" output="screen"/>
+  </group>
+
+<!-- Publish static transfrom between robots -->
+<node pkg="tf" type="static_transform_publisher" name="r1_to_r2" args="0 0 0 0 0 0 $(arg first_tb3)/odom $(arg second_tb3)/odom 100" />
+<node pkg="tf" type="static_transform_publisher" name="r1_to_r3" args="0 0 0 0 0 0 $(arg first_tb3)/odom $(arg third_tb3)/odom 100" />
+
+<!-- <node pkg="tf" type="static_transform_publisher" name="r1_to_r2" args="0 0 0 0 0 0 $(arg first_tb3)/map $(arg second_tb3)/odom 100" /> -->
+<!-- <node pkg="tf" type="static_transform_publisher" name="r1_to_r3" args="0 0 0 0 0 0 $(arg first_tb3)/map $(arg third_tb3)/odom 100" /> -->
+  <group if="$(arg use_plotter)">
+    <node name="plotjuggler_with_layout" pkg="plotjuggler" type="PlotJuggler" required = "false" output = "screen"
+          args="--nosplash --layout $(find got_node)/config/plotjuggler_layout_got_error.xml"/>
+  </group>
+
+</launch>
+
+
+<!-- ROS_NAMESPACE=robot1 roslaunch turtlebot3_slam turtlebot3_gmapping.launch set_base_frame:=robot1/base_footprint set_odom_frame:=robot1/odom set_map_frame:=robot1/map -->

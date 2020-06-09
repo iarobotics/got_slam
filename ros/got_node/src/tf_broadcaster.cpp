@@ -405,7 +405,7 @@ void TeleopTurtle::odomRawCallback(const nav_msgs::Odometry::ConstPtr& msg){
              << odom_local_pose_.y << ','
              << odom_global_got_raw_pose_.x << ','  // Odom + imu + got_raw
              << odom_global_got_raw_pose_.y << ','
-             << odom_global_got_corr_pose_.x << ','  // Global_got_corrected odom error
+             << odom_global_got_corr_pose_.x << ','  // Odom + imu + got_corr
              << odom_global_got_corr_pose_.y << ','
              << slam_raw_pose_.x << ','              // Slam raw error
              << slam_raw_pose_.y << ','
@@ -413,7 +413,7 @@ void TeleopTurtle::odomRawCallback(const nav_msgs::Odometry::ConstPtr& msg){
              << odom_local_slam_pose_.y << ','
              << odom_global_got_raw_slam_pose_.x << ','      // SLAM +odom + imu +got_raw -> EKF->
              << odom_global_got_raw_slam_pose_.y << ','
-             << odom_global_got_corr_slam_pose_.x << ','      // SLAM +odom + imu +got_raw -> EKF->
+             << odom_global_got_corr_slam_pose_.x << ','      // SLAM +odom + imu +got_corr -> EKF->
              << odom_global_got_corr_slam_pose_.y << ','
              << (got_teensy_pose_.x + offset_x_) << ','  // Got raw error
              << (got_teensy_pose_.y + offset_y_) << ','

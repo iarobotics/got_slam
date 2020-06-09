@@ -23,10 +23,9 @@ desired_position_ = Point()
 #desired_position_.y = rospy.get_param('des_pos_y')
 #desired_position_.z = 0
 # parameters
-#yaw_precision_ = math.pi / 90 # +/- 2 degree allowed
-yaw_precision_ = math.pi / 45 # +/- 2 degree allowed
+yaw_precision_ = math.pi / 90 # +/- 2 degree allowed
 
-dist_precision_ = 0.1
+dist_precision_ = 0.3
 
 desired_position_old_ = Point()
 #desired_position_old_.x = desired_position_.x
@@ -35,120 +34,27 @@ desired_position_old_ = Point()
 
 # publishers
 pub = None
-pose_pub = None
 
-# (x,y) position goal. Robot starts (2.0, -4.0)
-# goal_points_ = [
-#     (-2.0, -4.0),
-#     (-2.0, -2.0),
-#     (2.0, -2.0),
-#     (2.0, 0.0),
-#     (-2.0, 0.0),
-#     (-2.0, 4.0),
-#     (2.0, 4.0),
-#     (0.0, 2.0)
-# ]
-
-# goal_points_ = [
-#     (0.0, 0.0), # starting point
-#     (-1.0, 0.0),
-#     (-2.0, 1.0),
-#     (-2.0, 4.0),
-#     (1.0, 3.0),
-#     (2.0, 4.0),
-#     (1.0, 3.0), # go back to start
-#     (-2.0, 4.0),
-#     (-2.0, 1.0),
-#     (-1.0, 0.0),
-#     (0.0, 0.0)
-# ]
-
-# goal_points_ = [
-#     (-1.0, 3.0),
-#     (2.0, 3.0),
-#     (4.0, 4.0),
-#     (6.0, 3.0),
-#     (6.0, -2.0),
-#     (4.0, -3.0),
-#     (0.0, -3.0),
-#     (0.0, 0.0), # round 2
-#     (-1.0, 3.0),
-#     (2.0, 3.0),
-#     (4.0, 4.0),
-#     (6.0, 3.0),
-#     (6.0, -2.0),
-#     (4.0, -3.0),
-#     (0.0, -3.0)
-# ]
-
-# goal_points_ = [
-#     (-1.0, 3.0),
-#     (2.0, 3.0),
-#     (4.0, 4.0),
-#     (6.0, 3.0),
-#     (6.0, -2.0),
-#     (4.0, -3.0),
-#     (0.0, -3.0),
-#     (0.0, 2.0), # in the labyrith
-#     (2.0, 2.0),
-#     (2.0, -1.0),
-#     (4.0, -1.0),
-#     (4.0, 2.0)
-# ]
-
-# goal_points_ = [
-#     (0.0, 0.0),
-#     (0.0, 3.0),
-#     (2.0, 3.0),
-#     (4.0, 4.0),
-#     (6.0, 3.0),
-#     (6.0, -2.0),
-#     (4.0, -3.0),
-#     (0.0, -3.0),
-#     (0.0, 0.0) # back to start - don't forget to add ","
-#     # (-1.0, 3.0),
-#     # (2.0, 3.0),
-#     # (4.0, 4.0),
-#     # (6.0, 3.0),
-#     # (6.0, -2.0),
-#     # (4.0, -3.0),
-#     # (0.0, -3.0),
-#     # (0.0, 2.0), # back to start
-#     # (-1.0, 3.0),
-#     # (2.0, 3.0),
-#     # (4.0, 4.0),
-#     # (6.0, 3.0),
-#     # (6.0, -2.0),
-#     # (4.0, -3.0),
-#     # (0.0, -3.0),
-#     # (0.0, 2.0), # back to start
-# ]
-
+# (x,y) position goal. Robot starts (2.5, -4.0)
 goal_points_ = [
-    (2.0, 0.0),
-    (2.0, -1.8),
-    (0.0, -1.8),
     (0.0, 0.0),
-
-    (2.0, 0.0),
-    (2.0, -1.8),
-    (0.0, -1.8),
-    (0.0, 0.0),
-
-    (2.0, 0.0),
-    (2.0, -1.8),
-    (0.0, -1.8),
-    (0.0, 0.0),
-
-    (2.0, 0.0),
-    (2.0, -1.8),
-    (0.0, -1.8),
-    (0.0, 0.0),
+    (0.0, 3.0),
+    (2.0, 3.0),
+    (4.0, 4.0),
+    (6.0, 3.0),
+    (6.0, -2.0),
+    (4.0, -3.0),
+    (0.0, -3.0),
+    (0.0, 0.0), # back to start - don't forget to add ","
+    (0.0, 3.0),
+    (2.0, 3.0),
+    (4.0, 4.0),
+    (6.0, 3.0),
+    (6.0, -2.0),
+    (4.0, -3.0),
+    (0.0, -3.0),
+    (0.0, 0.0) # back to start - don't forget to add ","
 ]
-
-
-vel_angular = 0.3
-vel_linear = 0.3
 
 rospy.set_param('des_pos_x', goal_points_[0][0])
 rospy.set_param('des_pos_y', goal_points_[0][1])
@@ -159,8 +65,6 @@ pos_index_ = 1
 def clbk_odom(msg):
     global position_
     global yaw_
-    global pose_pub
-    global desired_position_
 
     # position
     position_ = msg.pose.pose.position
@@ -173,8 +77,6 @@ def clbk_odom(msg):
         msg.pose.pose.orientation.w)
     euler = transformations.euler_from_quaternion(quaternion)
     yaw_ = euler[2]
-
-    pose_pub.publish(desired_position_)
 
 
 def change_state(state):
@@ -201,7 +103,7 @@ def fix_yaw(des_pos):
 
     twist_msg = Twist()
     if math.fabs(err_yaw) > yaw_precision_:
-        twist_msg.angular.z = vel_angular if err_yaw > 0 else -vel_angular
+        twist_msg.angular.z = 0.7 if err_yaw > 0 else -0.7
 
     pub.publish(twist_msg)
 
@@ -220,8 +122,8 @@ def go_straight_ahead(des_pos):
 
     if err_pos > dist_precision_:
         twist_msg = Twist()
-        twist_msg.linear.x = vel_linear
-        twist_msg.angular.z = vel_angular if err_yaw > 0 else -vel_angular
+        twist_msg.linear.x = 0.4
+        twist_msg.angular.z = 0.2 if err_yaw > 0 else -0.2
         pub.publish(twist_msg)
     else:
         print 'Position error: [%s]' % err_pos
@@ -265,23 +167,14 @@ def get_goal_position():
 
 def main():
     global pub
-    global pose_pub
 
     rospy.init_node('go_to_point')
 
     pub = rospy.Publisher('cmd_vel', Twist, queue_size=1)
-    # pub = rospy.Publisher('/robot1/cmd_vel', Twist, queue_size=1) --- use __ns:=robot1 when running the node instead
-    ## rosrun tutorial robot.py __ns:=robot1
-    ## Does not work as even with __ns ode still publishes to /cmd_vel instead of robot1/cmd_vel
-    ## Update - works if "/" is removed Pub and Sub topic names
 
-    pose_pub = rospy.Publisher('goal_position_gtp', Point, queue_size=1)
-    
-    sub_odom = rospy.Subscriber('odom_local_filtered', Odometry, clbk_odom)
-    # sub_odom = rospy.Subscriber('/robot1/odom', Odometry, clbk_odom)
+    sub_odom = rospy.Subscriber('raw_odom', Odometry, clbk_odom)
 
-    #rate = rospy.Rate(20)
-    rate = rospy.Rate(100)
+    rate = rospy.Rate(20)
 
     while not rospy.is_shutdown():
 

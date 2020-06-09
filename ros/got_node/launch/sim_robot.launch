@@ -1,0 +1,184 @@
+  <launch>
+
+  <arg name="model" default="burger"/>
+  <arg name="namespace" default=""/>
+
+  <arg name="x_init" default="0.0"/>
+  <arg name="y_init" default="0.0"/>
+  <arg name="z_init" default="0.0"/>
+  <arg name="yaw_init" default="0.0"/>
+
+  <arg name="set_as_master" default="false"/>
+
+  <arg name="write_to_file" default="false"/>
+  <arg name="use_gtp" default="false"/>
+
+  <arg name="slam_publish_map_tf" default="false"/>
+
+  <arg name="topic_got_raw" default="got_raw"/>
+  <arg name="topic_got_corr" default="got_corr"/>
+  <arg name="topic_slam_pose" default="slam_pose_cov"/>
+
+  <arg name="topic_raw_odom" default="raw_odom"/>
+  <arg name="topic_odom_local" default="odom_local"/>
+  <arg name="topic_odom_global_got_raw" default="odom_global_got_raw"/>
+  <arg name="topic_odom_global_got_corr" default="odom_global_got_corr"/>
+
+  <arg name="topic_odom_global_slam" default="odom_global_slam"/>
+  <arg name="topic_odom_global_got_raw_slam" default="odom_global_got_raw_slam"/>
+  <arg name="topic_odom_global_got_corr_slam" default="odom_global_got_corr_slam"/>
+  
+
+
+  <group ns = "$(arg namespace)">
+    <param name="robot_description" command="$(find xacro)/xacro --inorder $(find turtlebot3_description)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
+      <param name="publish_frequency" type="double" value="50.0" />
+      <param name="tf_prefix" value="$(arg namespace)" />
+    </node>
+    
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model $(arg namespace) -x $(arg x_init) -y $(arg y_init) -z $(arg z_init) -Y $(arg yaw_init) -param robot_description" />
+
+    <node name="go_to_point" pkg="got_node" type="go_to_point.py"/>
+
+    <node if="$(arg set_as_master)" pkg="got_node" type="got_position_sim_master" name="master_got_position" output="screen" required="true">
+      <param name="got_err_s"  type="double" value="400" />
+      <param name="got_err_tolerance"  type="double" value="0.2" />
+      <param name="namespace"  type="string" value="$(arg namespace)" />
+      <param name="writeToFile"  type="bool" value="$(arg write_to_file)" />
+    </node>
+
+    <node unless="$(arg set_as_master)" pkg="got_node" type="got_position_sim_client" name="client_got_position" output="screen" required="true">
+      <param name="got_err_s"  type="double" value="400" />
+      <param name="got_err_tolerance"  type="double" value="0.2" />
+      <param name="namespace"  type="string" value="$(arg namespace)" />
+      <param name="writeToFile"  type="bool" value="$(arg write_to_file)" />
+    </node>
+    
+
+    <include if="$(arg set_as_master)" file="$(find turtlebot3_slam)/launch/turtlebot3_hector.launch">
+      <arg name="odom_frame" value="$(arg namespace)/odom"/>
+      <arg name="base_frame" value="$(arg namespace)/base_footprint"/>
+      <arg name="map_frame" value="$(arg namespace)/map"/>
+      <arg name="scan_topic" value="scan"/>
+      <arg name="scan_subscriber_queue_size" value="5"/>
+      <arg name="pub_map_odom_transform" value="$(arg slam_publish_map_tf)"/>
+      <arg name="tf_map_scanmatch_transform_frame_name" value="$(arg namespace)scanmatcher_frame"/>
+    </include>
+
+
+    <!-- EKF node 1 - Local -->
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <arg name="world_frame" value="$(arg namespace)/odom"/>
+      <arg name="odom_topic" value="$(arg topic_raw_odom)"/>
+      <arg name="imu_topic" value="imu"/>
+
+      <arg name="publish_tf" value="true"/>
+      <arg name="use_got" value="false"/>
+      <arg name="use_slam" value="false"/>
+      <arg name="node_name" value="ekf_local_node"/> 
+
+      <arg name="base_link_frame" value="$(arg namespace)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg namespace)/odom"/>
+      <!-- <arg name="map_frame" value="$(arg first_tb3)/map"/> -->
+      <arg name="odometry_filtered_topic" value="$(arg topic_odom_local)"/>
+    </include>
+
+    <!-- EKF node 2 - Global + got_raw-->
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <arg name="world_frame" value="$(arg namespace)/map"/>
+      <arg name="odom_topic" value="$(arg topic_odom_local)"/>
+      <arg name="got_topic" value="$(arg topic_got_raw)"/>
+      <arg name="imu_topic" value="imu"/>
+
+      <arg name="publish_tf" value="false"/>
+      <arg name="use_got" value="true"/>
+      <arg name="use_slam" value="false"/>
+      <arg name="node_name" value="ekf_global_got_raw_node"/> 
+
+      <arg name="base_link_frame" value="$(arg namespace)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg namespace)/odom"/>
+      <arg name="map_frame" value="$(arg namespace)/map"/>
+      <arg name="odometry_filtered_topic" value="$(arg topic_odom_global_got_raw)"/>
+    </include>
+
+    <!-- EKF node 3- Global + got_corr-->
+    <include file="$(find got_node)/launch/robot_localization.launch">
+      <arg name="world_frame" value="$(arg namespace)/map"/>
+      <arg name="odom_topic" value="$(arg topic_odom_local)"/>
+      <arg name="got_topic" value="$(arg topic_got_corr)"/>
+      <arg name="imu_topic" value="imu"/>
+
+      <arg name="publish_tf" value="false"/>
+      <arg name="use_got" value="true"/>
+      <arg name="use_slam" value="false"/>
+      <arg name="node_name" value="ekf_global_got_corr_node"/> 
+
+      <arg name="base_link_frame" value="$(arg namespace)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg namespace)/odom"/>
+      <arg name="map_frame" value="$(arg namespace)/map"/>
+      <arg name="odometry_filtered_topic" value="$(arg topic_odom_global_got_corr)"/>
+    </include>
+
+    <!-- EKF node 4 - Global + SLAM-->
+    <include if="$(arg set_as_master)" file="$(find got_node)/launch/robot_localization.launch">
+      <arg name="world_frame" value="$(arg namespace)/map"/>
+      <arg name="odom_topic" value="$(arg topic_odom_local)"/>
+      <!-- <arg name="got_topic" value="$(arg topic_got_corr)"/> -->
+      <arg name="slam_pose_topic" value="$(arg topic_slam_pose)"/>
+      
+      <arg name="imu_topic" value="imu"/>
+
+      <arg name="publish_tf" value="false"/>
+      <arg name="use_got" value="false"/>
+      <arg name="use_slam" value="true"/>
+      <arg name="node_name" value="ekf_global_slam_node"/> 
+
+      <arg name="base_link_frame" value="$(arg namespace)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg namespace)/odom"/>
+      <arg name="map_frame" value="$(arg namespace)/map"/>
+      <arg name="odometry_filtered_topic" value="$(arg topic_odom_global_slam)"/>
+    </include>
+
+    <!-- EKF node 5 - Global + SLAM + got_raw-->
+    <include if="$(arg set_as_master)" file="$(find got_node)/launch/robot_localization.launch">
+      <arg name="world_frame" value="$(arg namespace)/map"/>
+      <arg name="odom_topic" value="$(arg topic_odom_local)"/>
+      <arg name="got_topic" value="$(arg topic_got_raw)"/>
+      <arg name="slam_pose_topic" value="$(arg topic_slam_pose)"/>
+      <arg name="imu_topic" value="imu"/>
+
+      <arg name="publish_tf" value="true"/>
+      <arg name="use_got" value="true"/>
+      <arg name="use_slam" value="true"/>
+      <arg name="node_name" value="ekf_global_slam_got_raw_node"/> 
+
+      <arg name="base_link_frame" value="$(arg namespace)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg namespace)/odom"/>
+      <arg name="map_frame" value="$(arg namespace)/map"/>
+      <arg name="odometry_filtered_topic" value="$(arg topic_odom_global_got_raw_slam)"/>
+    </include>
+
+    <!-- EKF node 5 - Global + SLAM + got_corr-->
+    <include if="$(arg set_as_master)" file="$(find got_node)/launch/robot_localization.launch">
+      <arg name="world_frame" value="$(arg namespace)/map"/>
+      <arg name="odom_topic" value="$(arg topic_odom_local)"/>
+      <arg name="got_topic" value="$(arg topic_got_corr)"/>
+      <arg name="slam_pose_topic" value="$(arg topic_slam_pose)"/>
+      <arg name="imu_topic" value="imu"/>
+
+      <arg name="publish_tf" value="false"/>
+      <arg name="use_got" value="true"/>
+      <arg name="use_slam" value="true"/>
+      <arg name="node_name" value="ekf_global_slam_got_corr_node"/> 
+
+      <arg name="base_link_frame" value="$(arg namespace)/base_footprint"/>
+      <arg name="odom_frame" value="$(arg namespace)/odom"/>
+      <arg name="map_frame" value="$(arg namespace)/map"/>
+      <arg name="odometry_filtered_topic" value="$(arg topic_odom_global_got_corr_slam)"/>
+    </include>
+
+  </group>
+
+</launch>
