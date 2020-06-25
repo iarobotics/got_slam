@@ -24,24 +24,15 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <bits/stdc++.h>
 
-#include "got_node/AddTwoInts.h"
 #include "got_node/GetPosError.h"
+
+#include <tf/transform_broadcaster.h>
 
 #include <fstream>
 #include <iostream>
 
-// bool sendErr(got_node::GetPosError::Request  &req,
-//          got_node::GetPosError::Response &res)
-// {
-//   res.err_x = 12.3;
-//   res.err_y = 1.0;
-//   ROS_INFO("request: x=%f, y=%f", req.x, req.y);
-//   ROS_INFO("sending back response: ex:[%f] ey:[%f]", res.err_x, res.err_y);
-//   return true;
-// }
-
 struct Position { 
-	double x, y; 
+	float x, y; 
 
 	Position(float x_, float y_) 
 	{ 
@@ -102,11 +93,14 @@ private:
 
 
   //Parameters
-  double err_s_ = 3000;
-  double err_tolerance_ = 0; // 10 cm
+  double err_s_ = 10000;
+  double err_tolerance_ = 0.2; // 10 cm
 
-  std::string param_ground_truth_ = "amcl";
+  std::string param_ground_truth_ = "odom";
   bool param_fp_enabled_ = true;
+  bool param_pub_got_tf_ = true;
+  bool param_write_to_file_ = false;
+  std::string namespace_ = "";
 
 
   geometry_msgs::Point amcl_pos_;
@@ -114,31 +108,41 @@ private:
   geometry_msgs::Point slam_pos_;
   geometry_msgs::Point odom_local_pos_;
 
+  ros::ServiceServer service_;
+
   std::unordered_map<Position, Position, MyHashFunction> error_map_;
   // Position pos = {0,0};
   // Position err = {0,0};
-  ros::ServiceServer service_;
+  //ros::ServiceServer service_;
+
+  bool offset_obtained_ = false;
+  double offset_x_ = 0;
+  double offset_y_ = 0;
+
 };
 
 
 TeleopTurtle::TeleopTurtle()
 {
+
+  ros::param::param<std::string>("~namespace", namespace_, "robot1");
+  ros::param::param<double>("~got_err_tolerance", err_tolerance_, 0.2);
+  ros::param::param<double>("~got_err_s", err_s_, 10000);
+  ros::param::param<std::string>("~got_ground_truth", param_ground_truth_, "odom");
+  ros::param::param<bool>("~gotwriteToFile", param_write_to_file_, false);
+  ros::param::param<bool>("~pub_got_tf", param_pub_got_tf_, true);
+
   teensy_sub_ = nh_.subscribe<geometry_msgs::Point>("got_teensy", 10, &TeleopTurtle::teensyCallback, this);
 
-  odom_local_sub_ = nh_.subscribe<nav_msgs::Odometry>("odom_local_filtered", 10, &TeleopTurtle::odomLocalCallback, this);
-  odom_sub_ = nh_.subscribe<nav_msgs::Odometry>("odom", 10, &TeleopTurtle::odomCallback, this);
-  amcl_sub_ = nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 10, &TeleopTurtle::amclCallback, this);
+  //odom_local_sub_ = nh_.subscribe<nav_msgs::Odometry>("fused/odom_local", 10, &TeleopTurtle::odomLocalCallback, this);
+  odom_local_sub_ = nh_.subscribe<nav_msgs::Odometry>("odom", 10, &TeleopTurtle::odomLocalCallback, this);
+  //odom_sub_ = nh_.subscribe<nav_msgs::Odometry>("odom", 10, &TeleopTurtle::odomCallback, this);
+  //amcl_sub_ = nh_.subscribe<geometry_msgs::PoseWithCovarianceStamped>("amcl_pose", 10, &TeleopTurtle::amclCallback, this);
   slam_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("slam_out_pose", 10, &TeleopTurtle::slamCallback, this);
 
   got_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("got_pose_corrected", 1);
 
   service_ = nh_.advertiseService("get_pos_error", &TeleopTurtle::sendErr, this);
-
-  nh_.setParam("got_err_tolerance", err_tolerance_);
-  nh_.setParam("got_err_s", err_s_);
-
-  nh_.setParam("got_ground_truth", param_ground_truth_);
-  nh_.setParam("got_enable_fp", param_fp_enabled_);
 
 }
 
@@ -182,14 +186,14 @@ bool TeleopTurtle::sendErr(got_node::GetPosError::Request  &req,
       res.err_x = it->second.x;
       res.err_y = it->second.y;
       //ROS_INFO("Got error X:%f, Y:%f", err_x, err_y);
-      ROS_INFO("sending back response: ex:[%f] ey:[%f]", res.err_x, res.err_y);
+      //ROS_INFO("sending back response: ex:[%f] ey:[%f]", res.err_x, res.err_y);
   }
-  else
-  {
-    ROS_ERROR("Position not found");
-    res.err_x = 0;
-    res.err_y = 0;
-  }
+  // else
+  // {
+  //   //ROS_ERROR("Position not found");
+  //   res.err_x = 0;
+  //   res.err_y = 0;
+  // }
 
   return true;
 }
@@ -197,12 +201,9 @@ bool TeleopTurtle::sendErr(got_node::GetPosError::Request  &req,
 void TeleopTurtle::teensyCallback(const geometry_msgs::Point::ConstPtr& msg)
 {
 
-    nh_.getParam("got_err_tolerance", err_tolerance_); // Error tolerance parameter, defaults to 0
-    nh_.getParam("got_err_s", err_s_); // Error tolerance parameter, defaults to 0
-
-    nh_.getParam("got_ground_truth", param_ground_truth_);
-    nh_.getParam("got_enable_fp", param_fp_enabled_);
-
+    ros::param::get("~got_err_tolerance", err_tolerance_);
+    ros::param::get("~got_err_s", err_s_);
+    ros::param::get("~got_ground_truth", param_ground_truth_);
 
     // Set ground_truth reference to compare with actual GoT position
     double ground_x = 0, ground_y = 0, ground_z = 0;
@@ -211,9 +212,9 @@ void TeleopTurtle::teensyCallback(const geometry_msgs::Point::ConstPtr& msg)
 
     if (param_ground_truth_ == "odom")
     {
-      ground_x = odom_pos_.x;
-      ground_y = odom_pos_.y;
-      ground_z = odom_pos_.z;
+      ground_x = odom_local_pos_.x;
+      ground_y = odom_local_pos_.y;
+      ground_z = odom_local_pos_.z;
       //ROS_INFO("ground_truth set to: odom");
     }
     else if (param_ground_truth_ == "amcl")
@@ -231,75 +232,138 @@ void TeleopTurtle::teensyCallback(const geometry_msgs::Point::ConstPtr& msg)
       //ROS_INFO("ground_truth set to: slam");
     }
 
-    // Error correction
-    double dx = ground_x - msg->x;
-    double dy = ground_y - msg->y;
-
-    float got_key_x = ((int)(got_x * 10)) / 10.0;   // Store error for every 10 cm
-    float got_key_y = ((int)(got_x * 10)) / 10.0;
-
-    double error_x = 0, error_y = 0;
-
-    if(fabs(dx) > err_tolerance_)
+    if (!offset_obtained_)
     {
-      error_x = -(pow(dx,2)) - (pow(dy,2));
-      error_x = dx * exp(error_x / err_s_);
-    }
-
-    if(fabs(dy) > err_tolerance_)
+      //if (odom_pose.pose.pose.position.x != 0) // Wait to get actual data as it takes a while to get a reading sometimes
+      if (got_x != 0) // Wait to get actual data as it takes a while to get a reading sometimes
+      {
+        // offset_x_ = ground_x - got_x;
+        // offset_y_ = ground_y - got_y;
+        offset_x_ = -got_x;
+        offset_y_ = -got_y;
+        offset_obtained_ = true;
+      }
+    } else  // Offset is set - To simulate robot starting at GoT(0,0)
     {
-      error_y = -(pow(dx,2)) - (pow(dy,2));
-      error_y = dy * exp(error_y / err_s_);
-    }
 
-    Position pos = {got_key_x, got_key_y};
-    if(param_fp_enabled_ && ((error_x != 0) || (error_y != 0)))
-    {
-      //Position pos = {ground_x, ground_y};
+      //Remove offset
+      got_x += offset_x_;
+      got_y += offset_y_;
+
+      // Error correction
+      double dx = ground_x - got_x;
+      double dy = ground_y - got_y;
+
+      // double key_x = ((int)(ground_x * 10)) / 10;   // Store error for every 0.1 mm
+      // double key_y = ((int)(ground_y * 10)) / 10;
+      double key_x = ((int)(got_x * 10)) / 10;   // Store error for every 100 mm
+      double key_y = ((int)(got_y * 10)) / 10;
+      //ROS_INFO("Ground truth: ex:[%f] ey:[%f]", key_x, key_y);
+
+      // Store error for every 0.5 meters
+      // key_x = 0.5 * ((int) (key_x / 0.5));
+      // key_y = 0.5 * ((int) (key_y / 0.5));
+      Position pos = {key_x, key_y};
+
+      double error_x = 0, error_y = 0;
+
+      if(fabs(dx) > err_tolerance_)
+      {
+        error_x = -(pow(dx,2)) - (pow(dy,2));
+        error_x = dx * exp(error_x / err_s_);
+      }
+
+      if(fabs(dy) > err_tolerance_)
+      {
+        error_y = -(pow(dx,2)) - (pow(dy,2));
+        error_y = dy * exp(error_y / err_s_);
+      }
+
+      // Store error
       Position err = {error_x, error_y};
-      // Store new position/error pair
-        
+      //ROS_INFO("Storing new error: ex:[%f] ey:[%f]", error_x, error_y);
+
       std::pair<Position, Position> p(pos, err);
       error_map_.insert(p);
+
+
+      bool found_new_error = false;
+      auto it = error_map_.find(pos);
+      //if (error_map_.find(pos) != error_map_.end())
+      if ( it != error_map_.end() )   // If an error is found
+      {
+          //ROS_INFO("CORRECTION: x:[%f] y[%f] ex:[%f] ey:[%f]", pos.x, pos.y, err.x, err.y);
+          
+          // Check is new error is bigger than the stored one
+          if (fabs(error_x) > fabs(it->second.x))
+          {
+            error_x = it->second.x;
+            found_new_error = true;
+          }
+          if (fabs(error_y) > fabs(it->second.y))
+          {
+            error_y = it->second.y;
+            found_new_error = true;
+          }
+
+          // Replace stored error if a bigger one is found
+          if(found_new_error)
+          {
+            error_map_.erase(it);
+            Position err_new = {error_x, error_y};
+            std::pair<Position, Position> p_new(pos, err_new);
+            error_map_.insert(p_new);
+
+            found_new_error = false;
+            //ROS_INFO("NEW_ERROR: x:[%f] y[%f] ex:[%f] ey:[%f]", pos.x, pos.y, err_new.x, err_new.y);
+          }
+      }
+      else  // If no error is found at that print an Error_msg
+      {
+        error_x = 0;
+        error_y = 0;
+        ROS_ERROR("Position not found");
+      }
+
+      // Publish got -> base TF
+      if (param_pub_got_tf_)
+      {
+        static tf::TransformBroadcaster br;
+        tf::Transform transform;
+        transform.setOrigin( tf::Vector3((got_x + error_x), (got_y + error_y), 0.0) );
+        tf::Quaternion q;
+        q.setValue(0, 0, 0, 1);
+        transform.setRotation(q);
+
+        //br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), namespace_+"/got", namespace_+"/map"));
+        // br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), namespace_+"/odom", namespace_+"/got"));
+        br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), namespace_+"/got", namespace_+"/map"));
+      }
+
+      // Construct and publish a new GoT message with error correction
+      geometry_msgs::PoseWithCovarianceStamped got_pose;
+      tf2::Quaternion quat;
+      quat.setRPY(0,0,0);
+
+      //got_pose.header.seq = ++ frame_sequence_;
+      got_pose.header.stamp = ros::Time::now();
+      got_pose.header.frame_id = namespace_+"/got";
+      got_pose.pose.pose.position.x = got_x + error_x;
+      got_pose.pose.pose.position.y = got_y + error_y;
+      got_pose.pose.pose.position.z = 0.0;
+      got_pose.pose.pose.orientation.x = quat.x();
+      got_pose.pose.pose.orientation.y = quat.y();
+      got_pose.pose.pose.orientation.z = quat.z();
+      got_pose.pose.pose.orientation.w = quat.w();
+
+      got_pose.pose.covariance[0] = 0.001;
+      got_pose.pose.covariance[7] = 0.001;
+      got_pose.pose.covariance[35] = 0.001;
+
+      got_pub_.publish(got_pose);
+
+      //Publish TF from GOT frame to base_footprint
     }
-
-    if (error_map_.find(pos) != error_map_.end())
-    {
-        auto it = error_map_.find(pos);
-
-        error_x = it->second.x;
-        error_y = it->second.y;
-        //ROS_INFO("Got error X:%f, Y:%f", err_x, err_y);
-        ROS_INFO("Using error: ex:[%f] ey:[%f]", error_x, error_y);
-    }
-    else
-    {
-      ROS_ERROR("Position not found");
-      error_x = 0;
-      error_y = 0;
-    }
-
-    // Construct and publish a new GoT message with error correction
-    geometry_msgs::PoseWithCovarianceStamped got_pose;
-    tf2::Quaternion quat;
-    quat.setRPY(0,0,0);
-
-    //got_pose.header.seq = ++ frame_sequence_;
-    got_pose.header.stamp = ros::Time::now();
-    got_pose.header.frame_id = "odom";
-    got_pose.pose.pose.position.x = got_x + error_x;
-    got_pose.pose.pose.position.y = got_y + error_y;
-    got_pose.pose.pose.position.z = msg->z;
-    got_pose.pose.pose.orientation.x = quat.x();
-    got_pose.pose.pose.orientation.y = quat.y();
-    got_pose.pose.pose.orientation.z = quat.z();
-    got_pose.pose.pose.orientation.w = quat.w();
-
-    got_pose.pose.covariance[0] = 0.001;
-    got_pose.pose.covariance[7] = 0.001;
-    got_pose.pose.covariance[35] = 0.001;
-
-    got_pub_.publish(got_pose);
 
 }
 

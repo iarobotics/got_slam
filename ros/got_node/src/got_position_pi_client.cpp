@@ -51,7 +51,9 @@ private:
   
   unsigned frame_sequence_;
 
-  
+  bool offset_obtained_ = false;
+  double offset_x_ = 0;
+  double offset_y_ = 0;
 };
 
 
@@ -59,54 +61,75 @@ TeleopTurtle::TeleopTurtle()
 {
   teensy_sub_ = nh_.subscribe<geometry_msgs::Point>("got_teensy", 10, &TeleopTurtle::teensyCallback, this);
 
-  got_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("got_pose_corrected_client", 1);
+  got_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("got_pose_corrected", 1);
 
-  client_ = nh_.serviceClient<got_node::GetPosError>("get_pos_error");
-
-
+  client_ = nh_.serviceClient<got_node::GetPosError>("/robot1/get_pos_error");
 }
 
 
 void TeleopTurtle::teensyCallback(const geometry_msgs::Point::ConstPtr& msg)
 {
-  got_node::GetPosError srv;
-  srv.request.x = msg->x;
-  srv.request.y = msg->y;
+  double got_x = msg->x;
+  double got_y = msg->y;
 
-  double error_x = 0, error_y = 0;
-
-  if (client_.call(srv))
+  if (!offset_obtained_)
   {
-    error_x = srv.response.err_x;
-    error_y = srv.response.err_y;
-    ROS_INFO("Server response: %f, %f", srv.response.err_x, srv.response.err_y);
-  }
-  else
+    //if (odom_pose.pose.pose.position.x != 0) // Wait to get actual data as it takes a while to get a reading sometimes
+    if (got_x != 0) // Wait to get actual data as it takes a while to get a reading sometimes
+    {
+      offset_x_ = -got_x;
+      offset_y_ = -got_y;
+      offset_obtained_ = true;
+    }
+  } else
   {
-    ROS_ERROR("Failed to call service get_pos_error");
+    //Remove offset
+    got_x += offset_x_;
+    got_y += offset_y_;
+
+    double key_x = ((int)(got_x * 10)) / 10;   // Store error for every 100 mm
+    double key_y = ((int)(got_y * 10)) / 10;
+
+    got_node::GetPosError srv;
+    srv.request.x = key_x;
+    srv.request.y = key_y;
+
+    double error_x = 0, error_y = 0;
+
+    if (client_.call(srv))
+    {
+      error_x = srv.response.err_x;
+      error_y = srv.response.err_y;
+      ROS_INFO("Server response: %f, %f", srv.response.err_x, srv.response.err_y);
+    }
+    else
+    {
+      ROS_ERROR("Failed to call service get_pos_error");
+    }
+
+    // Construct and publish a new GoT message with error correction
+    geometry_msgs::PoseWithCovarianceStamped got_pose;
+    tf2::Quaternion quat;
+    quat.setRPY(0,0,0);
+
+    //got_pose.header.seq = ++ frame_sequence_;
+    got_pose.header.stamp = ros::Time::now();
+    got_pose.header.frame_id = "odom";
+    got_pose.pose.pose.position.x = got_x + error_x;
+    got_pose.pose.pose.position.y = got_y + error_y;
+    got_pose.pose.pose.position.z = 0;
+    got_pose.pose.pose.orientation.x = quat.x();
+    got_pose.pose.pose.orientation.y = quat.y();
+    got_pose.pose.pose.orientation.z = quat.z();
+    got_pose.pose.pose.orientation.w = quat.w();
+
+    got_pose.pose.covariance[0] = 0.001;
+    got_pose.pose.covariance[7] = 0.001;
+    got_pose.pose.covariance[35] = 0.001;
+
+    got_pub_.publish(got_pose);
+
   }
-
-  // Construct and publish a new GoT message with error correction
-  geometry_msgs::PoseWithCovarianceStamped got_pose;
-  tf2::Quaternion quat;
-  quat.setRPY(0,0,0);
-
-  //got_pose.header.seq = ++ frame_sequence_;
-  got_pose.header.stamp = ros::Time::now();
-  got_pose.header.frame_id = "odom";
-  got_pose.pose.pose.position.x = msg->x + error_x;
-  got_pose.pose.pose.position.y = msg->y + error_y;
-  got_pose.pose.pose.position.z = msg->z;
-  got_pose.pose.pose.orientation.x = quat.x();
-  got_pose.pose.pose.orientation.y = quat.y();
-  got_pose.pose.pose.orientation.z = quat.z();
-  got_pose.pose.pose.orientation.w = quat.w();
-
-  got_pose.pose.covariance[0] = 0.001;
-  got_pose.pose.covariance[7] = 0.001;
-  got_pose.pose.covariance[35] = 0.001;
-
-  got_pub_.publish(got_pose);
 
 }
 

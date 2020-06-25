@@ -215,8 +215,8 @@ target_link_libraries(got_position ${catkin_LIBRARIES})
 add_executable(got_position2 src/got_position2.cpp)
 target_link_libraries(got_position2 ${catkin_LIBRARIES})
 
-add_executable(got_position3 src/got_position3.cpp)
-target_link_libraries(got_position3 ${catkin_LIBRARIES})
+#add_executable(got_position3 src/got_position3.cpp)
+#target_link_libraries(got_position3 ${catkin_LIBRARIES})
 
 add_executable(send_waypoints src/send_waypoints.cpp)
 target_link_libraries(send_waypoints ${catkin_LIBRARIES})
