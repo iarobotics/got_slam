@@ -18,17 +18,34 @@
     <arg name="x_init" value="0.0"/>
     <arg name="y_init" value="0.0"/>
     <arg name="z_init" value="0.0"/>
+    <!-- <arg name="yaw_init" value="1.57"/> -->
     <arg name="yaw_init" value="0.0"/>
 
     <arg name="set_as_master" value="true"/>
     <arg name="write_to_file" value="true"/>
 
-    <arg name="use_gtp" value="true"/>
+    <arg name="use_gtp" value="false"/>
   </include>
 
   <!-- Client node -->
   <include file="$(find got_node)/launch/sim_robot.launch">
-    <arg name="namespace" value="client"/>
+    <arg name="namespace" value="client1"/>
+
+    <arg name="x_init" value="-1.0"/>
+    <!-- <arg name="y_init" value="-2.0"/> -->
+    <arg name="y_init" value="-1.0"/>
+    <arg name="z_init" value="0.0"/>
+    <arg name="yaw_init" value="0.0"/>
+
+    <arg name="set_as_master" value="false"/>
+    <arg name="write_to_file" value="false"/>
+
+    <arg name="use_gtp" value="false"/>
+  </include>
+
+  <!-- Client node -->
+  <include file="$(find got_node)/launch/sim_robot.launch">
+    <arg name="namespace" value="client2"/>
 
     <arg name="x_init" value="-1.0"/>
     <arg name="y_init" value="-2.0"/>
@@ -38,30 +55,16 @@
     <arg name="set_as_master" value="false"/>
     <arg name="write_to_file" value="false"/>
 
-    <arg name="use_gtp" value="true"/>
+    <arg name="use_gtp" value="false"/>
   </include>
-
-  <!-- Client node -->
-  <!-- <include file="$(find got_node)/launch/sim_robot.launch">
-    <arg name="namespace" value="client2"/>
-
-    <arg name="x_init" value="0.5"/>
-    <arg name="y_init" value="-3.0"/>
-    <arg name="z_init" value="0.0"/>
-    <arg name="yaw_init" value="0.0"/>
-
-    <arg name="set_as_master" value="false"/>
-    <arg name="write_to_file" value="false"/>
-
-    <arg name="use_gtp" value="true"/>
-  </include> -->
 
 <!-- Publish static transfrom between robots -->
 <!-- <node pkg="tf" type="static_transform_publisher" name="r1_to_r2" args="0 0 0 0 0 0 $(arg first_tb3)/odom $(arg second_tb3)/odom 100" /> -->
 <!-- <node pkg="tf" type="static_transform_publisher" name="r1_to_r3" args="0 0 0 0 0 0 $(arg first_tb3)/odom $(arg third_tb3)/odom 100" /> -->
 
 
-<node pkg="tf" type="static_transform_publisher" name="r1_to_r2" args="0 0 0 0 0 0 master/map client/odom 100" />
+<node pkg="tf" type="static_transform_publisher" name="r1_to_r2" args="0 0 0 0 0 0 master/map client1/odom 100" />
+<node pkg="tf" type="static_transform_publisher" name="r1_to_r3" args="0 0 0 0 0 0 master/map client2/odom 100" />
 <!-- <node pkg="tf" type="static_transform_publisher" name="r1_to_r3" args="0 0 0 0 0 0 $(arg first_tb3)/map $(arg third_tb3)/odom 100" /> -->
 
 </launch>

@@ -40,7 +40,7 @@
     
     <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -model $(arg namespace) -x $(arg x_init) -y $(arg y_init) -z $(arg z_init) -Y $(arg yaw_init) -param robot_description" />
 
-    <node name="go_to_point" pkg="got_node" type="go_to_point.py"/>
+    <!-- <node name="go_to_point" pkg="got_node" type="go_to_point.py"/> -->
 
     <node if="$(arg set_as_master)" pkg="got_node" type="got_position_sim_master" name="master_got_position" output="screen" required="true">
       <param name="got_err_s"  type="double" value="400" />

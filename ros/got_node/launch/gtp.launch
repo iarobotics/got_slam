@@ -1,0 +1,7 @@
+<launch>
+
+<!-- <node ns="master" name="go_to_point_master" pkg="got_node" type="gtp_lead.py"/> -->
+<node ns="client1" name="go_to_point_client1" pkg="got_node" type="gtp_client1.py"/>
+<node ns="client2" name="go_to_point_client2" pkg="got_node" type="gtp_client2.py"/>
+
+</launch>
