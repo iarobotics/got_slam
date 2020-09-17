@@ -10,14 +10,14 @@
 #define PWM_2 6*/
 
 ///Left Motor  Pins
-#define INA_2 17
-#define INB_2 16
-#define PWM_2 23
+#define INA_2 12
+#define INB_2 11
+#define PWM_2 10
 
 ///Right Motor Pins
-#define INA_1 15
-#define INB_1 14
-#define PWM_1 22
+#define INA_1 26
+#define INB_1 28
+#define PWM_1 30
 
 #define SPD 50
 
@@ -25,14 +25,12 @@ void setup()
 {
 
 //Setting Left Motor pin as OUTPUT
-pinMode(INA_1,OUTPUT);
+pinMode(INA_1,OUTPUT); 
 pinMode(INB_1,OUTPUT);
-pinMode(PWM_1,OUTPUT);
 
 //Setting Right Motor pin as OUTPUT
 pinMode(INA_2,OUTPUT);
 pinMode(INB_2,OUTPUT);
-pinMode(PWM_2,OUTPUT);
 }
 
 
@@ -51,41 +49,41 @@ delay(1000);
 move_backward();
 delay(5000);
 
-// //Stop for 1 sec
-// stop();
-// delay(1000);
+//Stop for 1 sec
+stop();
+delay(1000);
 
-// //Move left for 5 sec
-// move_left();
-// delay(5000);
+//Move left for 5 sec
+move_left();
+delay(5000);
 
-// //Stop for 1 sec
-// stop();
-// delay(1000);
+//Stop for 1 sec
+stop();
+delay(1000);
 
-// //Move right for 5 sec
-// move_right();
-// delay(5000);
+//Move right for 5 sec
+move_right();
+delay(5000);  
 
-// //Stop for 1 sec
-// stop();
-// delay(1000);
+//Stop for 1 sec
+stop();
+delay(1000);
 
 }
-
+ 
 void move_forward()
 {
-//Setting CW rotation to and Left Motor  and CCW to Right Motor
- //Left Motor
+//Setting CW rotation to and Left Motor  and CCW to Right Motor 
+ //Left Motor 
 
 digitalWrite(INA_1,HIGH);
 digitalWrite(INB_1,LOW);
 analogWrite(PWM_1,SPD);
 
-//Right Motor
+//Right Motor 
 digitalWrite(INA_2,LOW);
 digitalWrite(INB_2,HIGH);
-analogWrite(PWM_2,SPD);
+analogWrite(PWM_2,SPD);  
 
 }
 
@@ -93,16 +91,16 @@ analogWrite(PWM_2,SPD);
 
 void move_left()
 {
-
-//Left Motor
+ 
+//Left Motor 
 digitalWrite(INA_1,HIGH);
 digitalWrite(INB_1,LOW);
 analogWrite(PWM_1,SPD);
 
-//Right Motor
+//Right Motor 
 digitalWrite(INA_2,HIGH);
 digitalWrite(INB_2,HIGH);
-analogWrite(PWM_2,0);
+analogWrite(PWM_2,0);  
 
 
 }
@@ -110,29 +108,29 @@ analogWrite(PWM_2,0);
 void move_right()
 {
 
-//Left Motor
+//Left Motor 
 digitalWrite(INA_1,HIGH);
 digitalWrite(INB_1,HIGH);
 analogWrite(PWM_1,0);
 
-//Right Motor
+//Right Motor 
 digitalWrite(INA_2,LOW);
 digitalWrite(INB_2,HIGH);
-analogWrite(PWM_2,SPD);
+analogWrite(PWM_2,SPD);  
 }
 
 void stop()
 {
 
-//Left Motor
+//Left Motor 
 digitalWrite(INA_1,HIGH);
 digitalWrite(INB_1,HIGH);
 analogWrite(PWM_1,0);
 
-//Right Motor
+//Right Motor 
 digitalWrite(INA_2,HIGH);
 digitalWrite(INB_2,HIGH);
-analogWrite(PWM_2,0);
+analogWrite(PWM_2,0);  
 }
 
 /////////////////////////////////////////////////
@@ -141,13 +139,13 @@ void move_backward()
 
 {
 
-//Left Motor
+//Left Motor 
 digitalWrite(INA_1,LOW);
 digitalWrite(INB_1,HIGH);
 analogWrite(PWM_1,SPD);
 
-//Right Motor
+//Right Motor 
 digitalWrite(INA_2,HIGH);
 digitalWrite(INB_2,LOW);
-analogWrite(PWM_2,SPD);
+analogWrite(PWM_2,SPD);  
 }

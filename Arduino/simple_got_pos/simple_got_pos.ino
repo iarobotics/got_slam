@@ -22,6 +22,7 @@ void setup() {
 void loop() {
   Get_Position(); //double x_est,y_est,z_est defined in got_serial.h
   print_got_pos();
+  delay(100);
 
 }
 
@@ -29,5 +30,8 @@ void print_got_pos() {
    Serial.print("x_got: ");
    Serial.print(x_est);
    Serial.print("\t y_got: ");
-   Serial.println(y_est);
+   Serial.print(y_est);
+   Serial.print("\t z_got: ");
+   Serial.println(z_est);
+
 }

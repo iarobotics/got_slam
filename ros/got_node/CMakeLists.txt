@@ -215,9 +215,6 @@ target_link_libraries(got_position ${catkin_LIBRARIES})
 add_executable(got_position2 src/got_position2.cpp)
 target_link_libraries(got_position2 ${catkin_LIBRARIES})
 
-#add_executable(got_position3 src/got_position3.cpp)
-#target_link_libraries(got_position3 ${catkin_LIBRARIES})
-
 add_executable(send_waypoints src/send_waypoints.cpp)
 target_link_libraries(send_waypoints ${catkin_LIBRARIES})
 
@@ -231,7 +228,7 @@ add_executable(got_position_sim src/got_position_sim.cpp)
 target_link_libraries(got_position_sim ${catkin_LIBRARIES})
 
 add_executable(map_test src/map_test.cpp)
-target_link_libraries(map_test ${catkin_LIBRARIES})     
+target_link_libraries(map_test ${catkin_LIBRARIES})
 
 add_executable(add_two_ints_client src/add_two_ints_client.cpp)
 target_link_libraries(add_two_ints_client ${catkin_LIBRARIES})
@@ -262,3 +259,4 @@ target_link_libraries(got_position_sim_master ${catkin_LIBRARIES})
 
 add_executable(got_position_sim_client src/got_position_sim_client.cpp)
 target_link_libraries(got_position_sim_client ${catkin_LIBRARIES})
+

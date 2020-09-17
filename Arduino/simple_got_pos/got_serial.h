@@ -56,7 +56,7 @@ bool compute_checksum()
   sum2=sum2%255;
   check1 = 255 - ((sum1+sum2)%255);
   check2 = 255 - ((sum1+check1)%255);
-  
+
   if(sum1==(int)inBytes[ByteCnt-2] && sum2==(int)inBytes[ByteCnt-1])
   {
      return(true);
@@ -107,20 +107,21 @@ void Estimate_position()
     //compute distance between the so far estimated pt and transmitter
     double dp=(double)pow(x_est-(double)ID_POS_List[index][1],2);
     dp+=(double)pow(y_est-(double)ID_POS_List[index][2],2);
-    dp+=(double)pow(z_est-(double)ID_POS_List[index][3],2); 
+    dp+=(double)pow(z_est-(double)ID_POS_List[index][3],2);
     dp=sqrt(dp);
 
-    //compute measured distance                
+    //compute measured distance
     double meas_dist=(double)data_ptr->TxID_time_High;
     meas_dist=256*meas_dist+(double)data_ptr->TxID_time_Low;
     //Serial.print("Meas_Dist: ");
     meas_dist*=0.343; //Speed of light in mm pr uS
-    if(meas_dist>11000 || meas_dist<1000)
+    //if(meas_dist>11000 || meas_dist<1000)
+    if(meas_dist>16000 || meas_dist<1800)
        return;
     //Serial.println(meas_dist);
     //meas_dist=pow(fake_dist,2)-pow((double)ID_POS_List[index][3],2); //Henrik: skal tages væk under kørsel
     //meas_dist=sqrt(meas_dist);
-    double lambda=1-dp/meas_dist; 
+    double lambda=1-dp/meas_dist;
     //update estimate
 //    if(abs(lambda-1)>0.01)
 //    {
@@ -132,7 +133,7 @@ void Estimate_position()
 
     double dist_new=(double)pow(x_est-x_est_new,2);
     dist_new+=(double)pow(y_est-y_est_new,2);
-    dist_new+=(double)pow(z_est-z_est_new,2); 
+    dist_new+=(double)pow(z_est-z_est_new,2);
     //if(dist_new<0.25e6)
     {
       x_est=x_est_new;
@@ -155,13 +156,13 @@ void Estimate_position()
 //    Serial1.print(',');
 //    Serial1.print(z_est);
 //    Serial1.println(";");
-  }    
+  }
 }
 
 void Get_Position()
 {
   char inByte;
-  
+
   if (Serial1.available()) {
     char inByte = Serial1.read();
 
@@ -170,7 +171,7 @@ void Get_Position()
         ByteCnt=0;
         if(inByte==StartByte)
            State=StartByteRec;
-        break; 
+        break;
      case StartByteRec:
         switch(inByte) {
            case StartByte:
@@ -192,12 +193,12 @@ void Get_Position()
               State=EscapeRec;
            break;
            default:
-              inBytes[ByteCnt++]=inByte;     
+              inBytes[ByteCnt++]=inByte;
         }
         break;
       case EscapeRec:
          State=StartByteRec;
-         inBytes[ByteCnt++]=(char)(inByte-0x20); 
+         inBytes[ByteCnt++]=(char)(inByte-0x20);
    }
   }
 }
