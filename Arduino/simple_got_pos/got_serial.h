@@ -1,26 +1,34 @@
 
+#define NUM_BEACONS 15
 
 
-byte test_bytes[]{0x02, 13, 1, 0x10, 2, 0x10, 2, 0, 88, 50, 1, 90, 5, 0, 0, 88, 0x10, 2, 74, 216, 0x03};
-byte test_bytes_long[]{0x02, 19, 1, 0x10, 2, 0x10, 2, 0, 88, 50, 1, 90, 5, 0, 0, 88, 0x10, 2, 90, 5, 0, 0, 88, 0x10, 2, 74, 216, 0x03};
-
-//<Satellite Id="42497" DistanceTo00="4349" DistanceToX0="4124" DistanceToXY="4341" PositionX="1645" PositionY="-462" PositionZ="4000" />
-//      <Satellite Id="42498" DistanceTo00="6010" DistanceToX0="5856" DistanceToXY="5481" PositionX="1591" PositionY="4193" PositionZ="3999" />
-//      <Satellite Id="42867" DistanceTo00="8284" DistanceToX0="7739" DistanceToXY="8033" PositionX="6195" PositionY="0" PositionZ="5499" />
-//      <Satellite Id="42928" DistanceTo00="12291" DistanceToX0="11679" DistanceToXY="11771" PositionX="10157" PositionY="4204" PositionZ="5499" />
-//      <Satellite Id="42929" DistanceTo00="12150" DistanceToX0="11504" DistanceToXY="11974" PositionX="10568" PositionY="-2389" PositionZ="5499" />
-
-//int ID_POS_List[5][4]={{42497,1645,-462,4000},{42498,1591,4193,3999},{42867,6195,0,5499},{42928,10157,4204,5499},{42929,10568,-2389,5499}};
-int ID_POS_List[6][4]={{42929,1645,-462,4500},{42531,1591,4193,4500},{42498,1591,4193,3999},{42867,6195,0,5499},{42928,10157,4204,5499},{42497,10568,-2389,5499}};
+int ID_POS_List[NUM_BEACONS][4]={
+    {42428, 7825, 9999, 4286},
+    {42867, 11700, 5999, 5577},
+    {42928, 16244, 10150, 5577},
+    {42929, 7824, 5726, 4286},
+    {44529, 1999, 10677, 3531},
+    {44530, 2000, 4499, 3530},
+    {44531, 21369, 6534, 5578},
+    {44532, 26163, 9939, 5577},
+    {44533, 26163, 3699, 5577},
+    {44534, 31000, 6519, 5578},
+    {44535, 35766, 10012, 5578},
+    {44536, 35766, 3522, 5578},
+    {44537, 40205, 11684, 3767},
+    {44538, 40204, 4363, 3767},
+    {44540, 16560, 3549,5577}
+  };
 
 enum State_Type {EscapeRec = 2, StartByteRec = 1, Idle = 0};
 enum State_Type State = Idle;
-byte inBytes[25];
+//byte inBytes[25];
+byte inBytes[(NUM_BEACONS*4) + 1];
 int ByteCnt;
 int test_cnt=0;
 bool cc;
 
-double x_est=0,y_est=0,z_est=0;
+double x_est=1,y_est=2,z_est=3;
 double x_target=500,y_target=500,z_target=0;
 
 
@@ -43,8 +51,8 @@ bool compute_checksum()
   int i;
   long sum1=0;
   long sum2=0;
-  int check1=0;
-  int check2=0;
+  // int check1=0;
+  // int check2=0;
 
   for(i=1;i<ByteCnt-2;i++)
   {
@@ -54,8 +62,8 @@ bool compute_checksum()
   }
   sum1=sum1%255;
   sum2=sum2%255;
-  check1 = 255 - ((sum1+sum2)%255);
-  check2 = 255 - ((sum1+check1)%255);
+  // check1 = 255 - ((sum1+sum2)%255);
+  // check2 = 255 - ((sum1+check1)%255);
 
   if(sum1==(int)inBytes[ByteCnt-2] && sum2==(int)inBytes[ByteCnt-1])
   {
@@ -70,12 +78,11 @@ bool compute_checksum()
 void Extract_Data()
 {
   int Length = inBytes[0];
-  int No_Of_Data = floor((Length-6)/6);
-  int i;
+  int No_Of_Data = floor((Length-NUM_BEACONS)/NUM_BEACONS);
 
-  for(i=0;i<No_Of_Data;i++)
+  for(int i=0;i<No_Of_Data;i++)
   {
-    data_ptr=(data_type*) &inBytes[8+i*6];
+    data_ptr=(data_type*) &inBytes[8+i*NUM_BEACONS];
   }
   ByteCnt=0;
 }
@@ -93,7 +100,7 @@ void Estimate_position()
   //ID=fake_ID;
   //find ID in IP/Pos List;
   int index=-1;
-  for(int i=0;i<6;i++)
+  for(int i=0;i<NUM_BEACONS;i++)
   {
     if(ID_POS_List[i][0]==ID)
     {
@@ -115,9 +122,11 @@ void Estimate_position()
     meas_dist=256*meas_dist+(double)data_ptr->TxID_time_Low;
     //Serial.print("Meas_Dist: ");
     meas_dist*=0.343; //Speed of light in mm pr uS
+
     //if(meas_dist>11000 || meas_dist<1000)
     if(meas_dist>16000 || meas_dist<1800)
        return;
+
     //Serial.println(meas_dist);
     //meas_dist=pow(fake_dist,2)-pow((double)ID_POS_List[index][3],2); //Henrik: skal tages væk under kørsel
     //meas_dist=sqrt(meas_dist);
@@ -141,13 +150,13 @@ void Estimate_position()
       z_est=z_est_new;
     }
 
-    Serial.print(':');
-    Serial.print(x_est);
-    Serial.print(',');
-    Serial.print(y_est);
-    Serial.print(',');
-    Serial.print(z_est);
-    Serial.println(";");
+    // Serial.print(':');
+    // Serial.print(x_est);
+    // Serial.print(',');
+    // Serial.print(y_est);
+    // Serial.print(',');
+    // Serial.print(z_est);
+    // Serial.println(";");
 
 //    Serial1.print(':');
 //    Serial1.print(x_est);
@@ -161,10 +170,10 @@ void Estimate_position()
 
 void Get_Position()
 {
-  char inByte;
+  while (!Serial3.available())
+  {};
 
-  if (Serial1.available()) {
-    char inByte = Serial1.read();
+  char inByte = Serial3.read();
 
    switch(State) {
      case Idle:
@@ -200,5 +209,4 @@ void Get_Position()
          State=StartByteRec;
          inBytes[ByteCnt++]=(char)(inByte-0x20);
    }
-  }
 }
